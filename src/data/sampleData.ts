@@ -118,7 +118,7 @@ export const samplePlayers: Player[] = [
   { id: '230', name: 'Ishan Kishan', role: 'Wicket Keeper', iplTeam: 'SRH', owner: '5', totalPoints: 0, matchPoints: {} },
   
   // More players can be added as needed
-    { id: '152', name: 'Arshdeep Singh', role: 'Bowler', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '152', name: 'Arshdeep Singh', role: 'Bowler', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
   { id: '133', name: 'Naman Dhir', role: 'Batsman', iplTeam: 'MI', owner: '5', totalPoints: 0, matchPoints: {} },
   { id: '154', name: 'Marcus Stoinis', role: 'All-Rounder', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
   { id: '191', name: 'Shubham Dubey', role: 'Batsman', iplTeam: 'RR', owner: '5', totalPoints: 0, matchPoints: {} },
@@ -192,3 +192,76 @@ export const samplePlayers: Player[] = [
   { id: '158', name: 'Glenn Maxwell', role: 'All-Rounder', iplTeam: 'PBKS', owner: '8', totalPoints: 0, matchPoints: {} },
   { id: '18', name: 'Vijay Shankar', role: 'All-Rounder', iplTeam: 'CSK', owner: '8', totalPoints: 0, matchPoints: {} },
   { id: '231', name: 'Mohammad Shami', role: 'Bowler', iplTeam: 'SRH', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '88', name: 'Moeen Ali', role: 'All-Rounder', iplTeam: 'KKR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '33', name: 'Mukesh Kumar', role: 'Bowler', iplTeam: 'DC', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '237', name: 'Simarjeet Singh', role: 'Bowler', iplTeam: 'SRH', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '195', name: 'Kumar Kartikeya', role: 'Bowler', iplTeam: 'RR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '17', name: 'Jamie Overton', role: 'All-Rounder', iplTeam: 'CSK', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '126', name: 'Jasprit Bumrah', role: 'Bowler', iplTeam: 'MI', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '164', name: 'Vijaykumar Vyshak', role: 'Bowler', iplTeam: 'PBKS', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '81', name: 'Anrich Nortje', role: 'Bowler', iplTeam: 'KKR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '124', name: 'Aryan Juyal', role: 'Wicket Keeper', iplTeam: 'LSG', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '34', name: 'Harry Brook', role: 'Batsman', iplTeam: 'DC', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '65', name: 'Mahipal Lomror', role: 'All-Rounder', iplTeam: 'GT', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '90', name: 'Rovman Powell', role: 'Batsman', iplTeam: 'KKR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '20', name: 'Shreyas Gopal', role: 'Bowler', iplTeam: 'CSK', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '92', name: 'Umran Malik', role: 'Bowler', iplTeam: 'KKR', owner: '8', totalPoints: 0, matchPoints: {} },
+  
+  // Roshan's players
+  { id: '229', name: 'Travis Head', role: 'Batsman', iplTeam: 'SRH', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '228', name: 'Abhishek Sharma', role: 'Batsman', iplTeam: 'SRH', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '226', name: 'Heinrich Klaasen', role: 'Wicket Keeper', iplTeam: 'SRH', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '28', name: 'Kuldeep Yadav', role: 'Bowler', iplTeam: 'DC', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '9', name: 'Rachin Ravindra', role: 'All-Rounder', iplTeam: 'CSK', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '211', name: 'Tim David', role: 'All-Rounder', iplTeam: 'RCB', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '38', name: 'Faf du Plessis', role: 'Batsman', iplTeam: 'DC', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '182', name: 'Tushar Deshpande', role: 'Bowler', iplTeam: 'RR', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '32', name: 'Jake Fraser-McGurk', role: 'Batsman', iplTeam: 'DC', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '212', name: 'Suyash Sharma', role: 'Bowler', iplTeam: 'RCB', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '241', name: 'Kamindu Mendis', role: 'All-Rounder', iplTeam: 'SRH', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '39', name: 'Sameer Rizvi', role: 'Batsman', iplTeam: 'DC', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '93', name: 'Manish Pandey', role: 'Batsman', iplTeam: 'KKR', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '47', name: 'Darshan Nalkande', role: 'Bowler', iplTeam: 'DC', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '14', name: 'Gurjapneet Singh', role: 'Bowler', iplTeam: 'CSK', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '148', name: 'Krishnan Shrijith', role: 'Wicket Keeper', iplTeam: 'MI', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '217', name: 'Lungi Ngidi', role: 'Bowler', iplTeam: 'RCB', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '221', name: 'Mohit Rathee', role: 'All-Rounder', iplTeam: 'RCB', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '175', name: 'Praveen Dubey', role: 'Bowler', iplTeam: 'PBKS', owner: '9', totalPoints: 0, matchPoints: {} },
+  { id: '234', name: 'Rahul Chahar', role: 'Bowler', iplTeam: 'SRH', owner: '9', totalPoints: 0, matchPoints: {} }
+];
+
+// Adding match data
+export const sampleMatches: Match[] = [
+  { id: 'm1', matchNumber: 1, team1: 'KKR', team2: 'RCB', date: '2025-03-22', venue: 'Kolkata', isCompleted: false },
+  { id: 'm2', matchNumber: 2, team1: 'SRH', team2: 'RR', date: '2025-03-23', venue: 'Hyderabad', isCompleted: false },
+  { id: 'm3', matchNumber: 3, team1: 'CSK', team2: 'MI', date: '2025-03-23', venue: 'Chennai', isCompleted: false },
+  { id: 'm4', matchNumber: 4, team1: 'DC', team2: 'LSG', date: '2025-03-24', venue: 'Visakhapatnam', isCompleted: false },
+  { id: 'm5', matchNumber: 5, team1: 'GT', team2: 'PBKS', date: '2025-03-25', venue: 'Ahmedabad', isCompleted: false },
+  { id: 'm6', matchNumber: 6, team1: 'RR', team2: 'KKR', date: '2025-03-26', venue: 'Guwahati', isCompleted: false },
+  { id: 'm7', matchNumber: 7, team1: 'SRH', team2: 'LSG', date: '2025-03-27', venue: 'Hyderabad', isCompleted: false },
+  { id: 'm8', matchNumber: 8, team1: 'CSK', team2: 'RCB', date: '2025-03-28', venue: 'Chennai', isCompleted: false },
+  { id: 'm9', matchNumber: 9, team1: 'GT', team2: 'MI', date: '2025-03-29', venue: 'Ahmedabad', isCompleted: false },
+  { id: 'm10', matchNumber: 10, team1: 'DC', team2: 'SRH', date: '2025-03-30', venue: 'Visakhapatnam', isCompleted: false }
+];
+
+// Add function to return data initialized with correct owner player counts
+export const getInitializedData = () => {
+  const owners = [...teamOwners];
+  const players = [...samplePlayers];
+  
+  // Calculate player counts for each owner
+  const ownerPlayerCounts: Record<string, number> = {};
+  players.forEach(player => {
+    if (!ownerPlayerCounts[player.owner]) {
+      ownerPlayerCounts[player.owner] = 0;
+    }
+    ownerPlayerCounts[player.owner]++;
+  });
+  
+  // Update owner data with player counts
+  owners.forEach(owner => {
+    owner.totalPlayers = ownerPlayerCounts[owner.id] || 0;
+  });
+  
+  return { owners, players };
+};
