@@ -1,63 +1,40 @@
 
 import { useState, useEffect } from "react";
-import { Match, Player, PointsCategory } from "../types";
+import { Match, Player } from "../types";
 import { getInitializedData } from "../data/sampleData";
-import { pointsCategories, sampleMatches } from "../data/sampleData";
+import { sampleMatches } from "../data/sampleData";
 import { toast } from "sonner";
-import { Search, Plus, Minus, Save } from "lucide-react";
+import { Search, Save } from "lucide-react";
+import { Input } from "./ui/input";
 
 const PointsUpdateForm = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>(sampleMatches);
   const [selectedMatch, setSelectedMatch] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [playerPoints, setPlayerPoints] = useState<Record<string, Record<string, number>>>({});
+  const [playerPoints, setPlayerPoints] = useState<Record<string, number>>({});
+  const [filterOwner, setFilterOwner] = useState<string>("all");
   
   useEffect(() => {
     const { players } = getInitializedData();
     setPlayers(players);
     
     // Initialize player points
-    const initialPoints: Record<string, Record<string, number>> = {};
+    const initialPoints: Record<string, number> = {};
     players.forEach(player => {
-      initialPoints[player.id] = {};
-      pointsCategories.forEach(category => {
-        initialPoints[player.id][category.id] = 0;
-      });
+      initialPoints[player.id] = 0;
     });
     setPlayerPoints(initialPoints);
   }, []);
 
-  const filteredPlayers = players.filter(player =>
-    player.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handlePointChange = (playerId: string, categoryId: string, increment: boolean) => {
-    setPlayerPoints(prev => {
-      const currentValue = prev[playerId]?.[categoryId] || 0;
-      const newPoints = { ...prev };
-      
-      // Don't allow negative values for most categories
-      if (!increment && currentValue === 0) {
-        return prev;
-      }
-      
-      newPoints[playerId] = {
-        ...newPoints[playerId],
-        [categoryId]: increment ? currentValue + 1 : currentValue - 1
-      };
-      
-      return newPoints;
-    });
-  };
-
-  const calculateTotalPoints = (playerId: string) => {
-    if (!playerPoints[playerId]) return 0;
+  const handlePointChange = (playerId: string, value: string) => {
+    const pointValue = value === '' ? 0 : parseInt(value);
+    if (isNaN(pointValue)) return;
     
-    return pointsCategories.reduce((total, category) => {
-      const count = playerPoints[playerId][category.id] || 0;
-      return total + (count * category.pointsValue);
-    }, 0);
+    setPlayerPoints(prev => ({
+      ...prev,
+      [playerId]: pointValue
+    }));
   };
 
   const handleSavePoints = () => {
@@ -66,16 +43,51 @@ const PointsUpdateForm = () => {
       return;
     }
     
-    // Here you would typically save to a database
-    // For now, we'll just show a success message
+    // Here we would save the points to a database
+    // For now, let's update the players' total points and display a success message
+    const updatedPlayers = players.map(player => {
+      const matchPoint = playerPoints[player.id] || 0;
+      const newMatchPoints = {
+        ...player.matchPoints,
+        [selectedMatch]: matchPoint
+      };
+      
+      // Calculate new total points
+      const totalPoints = Object.values(newMatchPoints).reduce((sum, points) => sum + points, 0);
+      
+      return {
+        ...player,
+        matchPoints: newMatchPoints,
+        totalPoints: totalPoints
+      };
+    });
+    
+    setPlayers(updatedPlayers);
     toast.success("Points saved successfully!");
   };
+
+  const filteredPlayers = players.filter(player => {
+    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesOwner = filterOwner === "all" || player.owner === filterOwner;
+    return matchesSearch && matchesOwner;
+  });
+
+  // Sort players by owner and name
+  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
+    if (a.owner !== b.owner) {
+      return parseInt(a.owner) - parseInt(b.owner);
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  // Get the unique owners from the players
+  const owners = [...new Set(players.map(player => player.owner))];
 
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-ipl-dark">Update Points</h1>
-        <p className="text-gray-500">Add or update player points after matches</p>
+        <p className="text-gray-500">Enter player points for each match</p>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
@@ -92,8 +104,24 @@ const PointsUpdateForm = () => {
               <option value="">Select a match</option>
               {matches.map(match => (
                 <option key={match.id} value={match.id}>
-                  Match {match.matchNumber}: {match.team1} vs {match.team2}
+                  Match {match.matchNumber}: {match.team1} vs {match.team2} ({match.date})
                 </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Owner
+            </label>
+            <select
+              className="w-full md:w-48 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ipl-blue"
+              value={filterOwner}
+              onChange={(e) => setFilterOwner(e.target.value)}
+            >
+              <option value="all">All Owners</option>
+              {owners.map(ownerId => (
+                <option key={ownerId} value={ownerId}>Owner {ownerId}</option>
               ))}
             </select>
           </div>
@@ -135,64 +163,55 @@ const PointsUpdateForm = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Player
                   </th>
-                  {pointsCategories.map(category => (
-                    <th key={category.id} scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {category.name}
-                    </th>
-                  ))}
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Owner
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Team
+                  </th>
                   <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
+                    Points
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPlayers.map(player => (
+                {sortedPlayers.map(player => (
                   <tr key={player.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{player.name}</div>
-                          <div className="text-xs text-gray-500">{player.iplTeam} | {player.role}</div>
+                          <div className="text-xs text-gray-500">{player.role}</div>
                         </div>
                       </div>
                     </td>
                     
-                    {pointsCategories.map(category => (
-                      <td key={`${player.id}-${category.id}`} className="px-2 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                          <button
-                            className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
-                            onClick={() => handlePointChange(player.id, category.id, false)}
-                          >
-                            <Minus className="h-3 w-3 text-gray-500" />
-                          </button>
-                          
-                          <span className="text-sm w-6 text-center">
-                            {playerPoints[player.id]?.[category.id] || 0}
-                          </span>
-                          
-                          <button
-                            className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
-                            onClick={() => handlePointChange(player.id, category.id, true)}
-                          >
-                            <Plus className="h-3 w-3 text-gray-500" />
-                          </button>
-                        </div>
-                      </td>
-                    ))}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900">Owner {player.owner}</span>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {player.iplTeam}
+                      </span>
+                    </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        {calculateTotalPoints(player.id)}
-                      </span>
+                      <Input
+                        type="number"
+                        value={playerPoints[player.id] || ""}
+                        onChange={(e) => handlePointChange(player.id, e.target.value)}
+                        className="w-20 text-center mx-auto"
+                        min="0"
+                      />
                     </td>
                   </tr>
                 ))}
                 
-                {filteredPlayers.length === 0 && (
+                {sortedPlayers.length === 0 && (
                   <tr>
-                    <td colSpan={pointsCategories.length + 2} className="px-6 py-4 text-center text-gray-500">
-                      No players found. Try a different search term.
+                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                      No players found. Try a different search term or filter.
                     </td>
                   </tr>
                 )}

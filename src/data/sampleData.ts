@@ -1,191 +1,194 @@
-
 import { IPLTeam, Match, Player, PlayerRole, PointsCategory, TeamOwner } from "../types";
 
 export const teamOwners: TeamOwner[] = [
-  { id: '1', name: 'Aman', shortName: 'AMN', color: '#FF5757', totalPoints: 0, totalPlayers: 0 },
-  { id: '2', name: 'Anmol', shortName: 'ANM', color: '#4CAF50', totalPoints: 0, totalPlayers: 0 },
-  { id: '3', name: 'Aryan', shortName: 'ARY', color: '#2196F3', totalPoints: 0, totalPlayers: 0 },
-  { id: '4', name: 'Ayush', shortName: 'AYU', color: '#9C27B0', totalPoints: 0, totalPlayers: 0 },
-  { id: '5', name: 'Kunal', shortName: 'KUN', color: '#FF9800', totalPoints: 0, totalPlayers: 0 },
-  { id: '6', name: 'Palash', shortName: 'PAL', color: '#607D8B', totalPoints: 0, totalPlayers: 0 },
-  { id: '7', name: 'Sanchit', shortName: 'SAN', color: '#F44336', totalPoints: 0, totalPlayers: 0 },
-  { id: '8', name: 'Shobhit', shortName: 'SHO', color: '#673AB7', totalPoints: 0, totalPlayers: 0 },
-  { id: '9', name: 'Utkarsh', shortName: 'UTK', color: '#795548', totalPoints: 0, totalPlayers: 0 },
+  { id: '1', name: 'Sasi', shortName: 'SASI', color: '#FF5757', totalPoints: 0, totalPlayers: 0 },
+  { id: '2', name: 'Hari', shortName: 'HARI', color: '#4CAF50', totalPoints: 0, totalPlayers: 0 },
+  { id: '3', name: 'Ravi and Veera', shortName: 'R&V', color: '#2196F3', totalPoints: 0, totalPlayers: 0 },
+  { id: '4', name: 'Sudheer and Pavan', shortName: 'S&P', color: '#9C27B0', totalPoints: 0, totalPlayers: 0 },
+  { id: '5', name: 'Sumanth', shortName: 'SUM', color: '#FF9800', totalPoints: 0, totalPlayers: 0 },
+  { id: '6', name: 'Param', shortName: 'PRM', color: '#607D8B', totalPoints: 0, totalPlayers: 0 },
+  { id: '7', name: 'Surya', shortName: 'SUR', color: '#F44336', totalPoints: 0, totalPlayers: 0 },
+  { id: '8', name: 'Venky', shortName: 'VEN', color: '#673AB7', totalPoints: 0, totalPlayers: 0 },
+  { id: '9', name: 'Roshan', shortName: 'ROS', color: '#795548', totalPoints: 0, totalPlayers: 0 },
 ];
 
 export const samplePlayers: Player[] = [
-  // Sample data based on your Google Sheet
-  { 
-    id: '1', 
-    name: 'MS Dhoni', 
-    role: 'Wicket Keeper', 
-    iplTeam: 'CSK', 
-    owner: '1', 
-    price: 2.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '2', 
-    name: 'Virat Kohli', 
-    role: 'Batsman', 
-    iplTeam: 'RCB', 
-    owner: '2', 
-    price: 15.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '3', 
-    name: 'Rohit Sharma', 
-    role: 'Batsman', 
-    iplTeam: 'MI', 
-    owner: '3', 
-    price: 14.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '4', 
-    name: 'Jasprit Bumrah', 
-    role: 'Bowler', 
-    iplTeam: 'MI', 
-    owner: '4', 
-    price: 16.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '5', 
-    name: 'Jos Buttler', 
-    role: 'Wicket Keeper', 
-    iplTeam: 'RR', 
-    owner: '5', 
-    price: 14.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '6', 
-    name: 'Ravindra Jadeja', 
-    role: 'All-Rounder', 
-    iplTeam: 'CSK', 
-    owner: '6', 
-    price: 13.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '7', 
-    name: 'KL Rahul', 
-    role: 'Wicket Keeper', 
-    iplTeam: 'LSG', 
-    owner: '7', 
-    price: 12.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '8', 
-    name: 'Rishabh Pant', 
-    role: 'Wicket Keeper', 
-    iplTeam: 'DC', 
-    owner: '8', 
-    price: 13.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  { 
-    id: '9', 
-    name: 'Hardik Pandya', 
-    role: 'All-Rounder', 
-    iplTeam: 'MI', 
-    owner: '9', 
-    price: 15.0, 
-    totalPoints: 0,
-    matchPoints: {} 
-  },
-  // Add more players as needed
-];
-
-// These would typically come from your rules
-export const pointsCategories: PointsCategory[] = [
-  { id: '1', name: 'Run', pointsValue: 1 },
-  { id: '2', name: 'Four', pointsValue: 1 },
-  { id: '3', name: 'Six', pointsValue: 2 },
-  { id: '4', name: 'Century', pointsValue: 16 },
-  { id: '5', name: 'Half Century', pointsValue: 8 },
-  { id: '6', name: 'Duck', pointsValue: -2, forRole: ['Batsman', 'All-Rounder', 'Wicket Keeper'] },
-  { id: '7', name: 'Wicket', pointsValue: 25 },
-  { id: '8', name: 'Maiden Over', pointsValue: 8 },
-  { id: '9', name: 'Catch', pointsValue: 8 },
-  { id: '10', name: 'Run Out/Stumping', pointsValue: 12 },
-  { id: '11', name: 'Man of the Match', pointsValue: 20 },
-];
-
-export const sampleMatches: Match[] = [
-  {
-    id: 'm1',
-    matchNumber: 1,
-    team1: 'CSK',
-    team2: 'RCB',
-    date: '2024-03-22',
-    venue: 'M. A. Chidambaram Stadium, Chennai',
-    isCompleted: true,
-  },
-  {
-    id: 'm2',
-    matchNumber: 2,
-    team1: 'PBKS',
-    team2: 'DC',
-    date: '2024-03-23',
-    venue: 'Punjab Cricket Association Stadium, Mohali',
-    isCompleted: true,
-  },
-  {
-    id: 'm3',
-    matchNumber: 3,
-    team1: 'KKR',
-    team2: 'SRH',
-    date: '2024-03-23',
-    venue: 'Eden Gardens, Kolkata',
-    isCompleted: true,
-  },
-  {
-    id: 'm4',
-    matchNumber: 4,
-    team1: 'RR',
-    team2: 'LSG',
-    date: '2024-03-24',
-    venue: 'Sawai Mansingh Stadium, Jaipur',
-    isCompleted: false,
-  },
-  {
-    id: 'm5',
-    matchNumber: 5,
-    team1: 'GT',
-    team2: 'MI',
-    date: '2024-03-24',
-    venue: 'Narendra Modi Stadium, Ahmedabad',
-    isCompleted: false,
-  },
-];
-
-// Initialize players and owners for the sample data
-export function getInitializedData() {
-  const owners = [...teamOwners];
-  const players = [...samplePlayers];
+  // Sasi's players
+  { id: '57', name: 'Sai Sudharsan', role: 'Batsman', iplTeam: 'GT', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '111', name: 'Mitchell Marsh', role: 'All-Rounder', iplTeam: 'LSG', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '5', name: 'Noor Ahmad', role: 'Bowler', iplTeam: 'CSK', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '177', name: 'Sanju Samson', role: 'Wicket Keeper', iplTeam: 'RR', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '243', name: 'Aniket Verma', role: 'Bowler', iplTeam: 'SRH', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '227', name: 'Pat Cummins', role: 'Bowler', iplTeam: 'SRH', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '89', name: 'Vaibhav Arora', role: 'Bowler', iplTeam: 'KKR', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '31', name: 'Tristan Stubbs', role: 'Batsman', iplTeam: 'DC', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '233', name: 'Nitish Kumar Reddy', role: 'All-Rounder', iplTeam: 'SRH', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '131', name: 'Deepak Chahar', role: 'Bowler', iplTeam: 'MI', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '36', name: 'Ashutosh Sharma', role: 'Batsman', iplTeam: 'DC', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '86', name: 'Spencer Johnson', role: 'Bowler', iplTeam: 'KKR', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '15', name: 'Nathan Ellis', role: 'Bowler', iplTeam: 'CSK', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '16', name: 'Deepak Hooda', role: 'All-Rounder', iplTeam: 'CSK', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '239', name: 'Wiaan Mulder', role: 'All-Rounder', iplTeam: 'SRH', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '145', name: 'Raj Bawa', role: 'All-Rounder', iplTeam: 'MI', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '21', name: 'C Andre Siddarth', role: 'All-Rounder', iplTeam: 'CSK', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '213', name: 'Jacob Bethell', role: 'All-Rounder', iplTeam: 'RCB', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '25', name: 'Kamlesh Nagarkoti', role: 'Bowler', iplTeam: 'CSK', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '188', name: 'Kwena Maphaka', role: 'Bowler', iplTeam: 'RR', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '171', name: 'Suryansh Shedge', role: 'All-Rounder', iplTeam: 'PBKS', owner: '1', totalPoints: 0, matchPoints: {} },
+  { id: '30', name: 'T Natarajan', role: 'Bowler', iplTeam: 'DC', owner: '1', totalPoints: 0, matchPoints: {} },
   
-  // Count players per owner
-  const playerCounts: Record<string, number> = {};
-  players.forEach(player => {
-    playerCounts[player.owner] = (playerCounts[player.owner] || 0) + 1;
-  });
+  // Hari's players
+  { id: '113', name: 'Aiden Markram', role: 'Batsman', iplTeam: 'LSG', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '54', name: 'Mohammed Siraj', role: 'Bowler', iplTeam: 'GT', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '203', name: 'Phil Salt', role: 'Wicket Keeper', iplTeam: 'RCB', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '78', name: 'Varun Chakravarthy', role: 'Bowler', iplTeam: 'KKR', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '29', name: 'Mitchell Starc', role: 'Bowler', iplTeam: 'DC', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '181', name: 'Shimron Hetmyer', role: 'Batsman', iplTeam: 'RR', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '209', name: 'Krunal Pandya', role: 'All-Rounder', iplTeam: 'RCB', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '176', name: 'Yashasvi Jaiswal', role: 'Batsman', iplTeam: 'RR', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '6', name: 'Ravichandran Ashwin', role: 'All-Rounder', iplTeam: 'CSK', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '163', name: 'Lockie Ferguson', role: 'Bowler', iplTeam: 'PBKS', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '155', name: 'Marco Jansen', role: 'All-Rounder', iplTeam: 'PBKS', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '186', name: 'Sandeep Sharma', role: 'Bowler', iplTeam: 'RR', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '214', name: 'Devdutt Padikkal', role: 'Batsman', iplTeam: 'RCB', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '242', name: 'Zeeshan Ansari', role: 'All-Rounder', iplTeam: 'SRH', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '134', name: 'Will Jacks', role: 'Batsman', iplTeam: 'MI', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '58', name: 'M Shahrukh Khan', role: 'Batsman', iplTeam: 'GT', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '106', name: 'Akash Deep', role: 'Bowler', iplTeam: 'LSG', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '37', name: 'Mohit Sharma', role: 'Bowler', iplTeam: 'DC', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '129', name: 'Rohit Sharma', role: 'Batsman', iplTeam: 'MI', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '12', name: 'Anshul Kamboj', role: 'Bowler', iplTeam: 'CSK', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '117', name: 'Himmat Singh', role: 'Batsman', iplTeam: 'LSG', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '172', name: 'Pyla Avinash', role: 'Bowler', iplTeam: 'PBKS', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '166', name: 'Harpreet Brar', role: 'All-Rounder', iplTeam: 'PBKS', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '161', name: 'Josh Inglis', role: 'Wicket Keeper', iplTeam: 'PBKS', owner: '2', totalPoints: 0, matchPoints: {} },
+  { id: '218', name: 'Swapnil Singh', role: 'All-Rounder', iplTeam: 'RCB', owner: '2', totalPoints: 0, matchPoints: {} },
   
-  // Update owner stats
-  owners.forEach(owner => {
-    owner.totalPlayers = playerCounts[owner.id] || 0;
-  });
+  // Ravi and Veera's players
+  { id: '91', name: 'Ajinkya Rahane', role: 'Batsman', iplTeam: 'KKR', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '53', name: 'Jos Buttler', role: 'Wicket Keeper', iplTeam: 'GT', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '52', name: 'Shubman Gill', role: 'Batsman', iplTeam: 'GT', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '110', name: 'Mohsin Khan/Shardul Thakur', role: 'Bowler', iplTeam: 'LSG', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '128', name: 'Suryakumar Yadav', role: 'Batsman', iplTeam: 'MI', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '64', name: 'Sai Kishore', role: 'Bowler', iplTeam: 'GT', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '157', name: 'Nehal Wadhera', role: 'Batsman', iplTeam: 'PBKS', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '85', name: 'Angkrish Raghuvanshi', role: 'Batsman', iplTeam: 'KKR', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '77', name: 'Rinku Singh', role: 'Batsman', iplTeam: 'KKR', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '104', name: 'Ravi Bishnoi', role: 'Bowler', iplTeam: 'LSG', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '26', name: 'Axar Patel', role: 'All-Rounder', iplTeam: 'DC', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '13', name: 'Sam Curran', role: 'All-Rounder', iplTeam: 'CSK', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '189', name: 'Akash Madhwal', role: 'Bowler', iplTeam: 'RR', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '74', name: 'Anuj Rawat', role: 'Wicket Keeper', iplTeam: 'GT', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '94', name: 'Anukul Roy', role: 'All-Rounder', iplTeam: 'KKR', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '244', name: 'Atharva Taide', role: 'Batsman', iplTeam: 'SRH', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '62', name: 'Gerald Coetzee', role: 'Bowler', iplTeam: 'GT', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '114', name: 'Matthew Breetzke', role: 'Batsman', iplTeam: 'LSG', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '103', name: 'Mayank Yadav', role: 'Bowler', iplTeam: 'LSG', owner: '3', totalPoints: 0, matchPoints: {} },
+  { id: '190', name: 'Vaibhav Suryavanshi', role: 'Batsman', iplTeam: 'RR', owner: '3', totalPoints: 0, matchPoints: {} },
   
-  return { owners, players };
-}
+  // Sudheer and Pavan's players
+  { id: '150', name: 'Shreyas Iyer', role: 'Batsman', iplTeam: 'PBKS', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '80', name: 'Sunil Narine', role: 'All-Rounder', iplTeam: 'KKR', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '204', name: 'Rajat Patidar', role: 'Batsman', iplTeam: 'RCB', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '8', name: 'Khaleel Ahmed', role: 'Bowler', iplTeam: 'CSK', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '232', name: 'Harshal Patel', role: 'Bowler', iplTeam: 'SRH', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '159', name: 'Prabhsimran Singh', role: 'Wicket Keeper', iplTeam: 'PBKS', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '137', name: 'Ryan Rickelton', role: 'Wicket Keeper', iplTeam: 'MI', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '185', name: 'Nitish Rana', role: 'Batsman', iplTeam: 'RR', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '79', name: 'Andre Russell', role: 'All-Rounder', iplTeam: 'KKR', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '35', name: 'Abishek Porel', role: 'Wicket Keeper', iplTeam: 'DC', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '11', name: 'Rahul Tripathi', role: 'Batsman', iplTeam: 'CSK', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '144', name: 'Satyanarayana Raju', role: 'Batsman', iplTeam: 'MI', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '165', name: 'Yash Thakur', role: 'Bowler', iplTeam: 'PBKS', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '112', name: 'Shahbaz Ahmed', role: 'All-Rounder', iplTeam: 'LSG', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '48', name: 'Ajay Mandal', role: 'All-Rounder', iplTeam: 'DC', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '63', name: 'Glenn Phillips', role: 'Wicket Keeper', iplTeam: 'GT', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '69', name: 'Jayant Yadav', role: 'All-Rounder', iplTeam: 'GT', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '141', name: 'Karn Sharma', role: 'Bowler', iplTeam: 'MI', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '173', name: 'Musheer Khan', role: 'All-Rounder', iplTeam: 'PBKS', owner: '4', totalPoints: 0, matchPoints: {} },
+  { id: '46', name: 'Tripurana Vijay', role: 'All-Rounder', iplTeam: 'DC', owner: '4', totalPoints: 0, matchPoints: {} },
+  
+  // For brevity, I'll include the next owner and we can add the rest later
+  // Sumanth's players
+  { id: '102', name: 'Nicholas Pooran', role: 'Wicket Keeper', iplTeam: 'LSG', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '160', name: 'Priyansh Arya', role: 'Batsman', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '27', name: 'KL Rahul', role: 'Wicket Keeper', iplTeam: 'DC', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '82', name: 'Harshit Rana', role: 'Bowler', iplTeam: 'KKR', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '132', name: 'Tilak Varma', role: 'Batsman', iplTeam: 'MI', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '230', name: 'Ishan Kishan', role: 'Wicket Keeper', iplTeam: 'SRH', owner: '5', totalPoints: 0, matchPoints: {} },
+  
+  // More players can be added as needed
+    { id: '152', name: 'Arshdeep Singh', role: 'Bowler', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '133', name: 'Naman Dhir', role: 'Batsman', iplTeam: 'MI', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '154', name: 'Marcus Stoinis', role: 'All-Rounder', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '191', name: 'Shubham Dubey', role: 'Batsman', iplTeam: 'RR', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '83', name: 'Ramandeep Singh', role: 'All-Rounder', iplTeam: 'KKR', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '238', name: 'Eshan Malinga', role: 'Bowler', iplTeam: 'SRH', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '236', name: 'Adam Zampa', role: 'Bowler', iplTeam: 'SRH', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '235', name: 'Abhinav Manohar', role: 'Batsman', iplTeam: 'SRH', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '162', name: 'Azmatullah Omarzai', role: 'All-Rounder', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '140', name: 'Robin Minz', role: 'Wicket Keeper', iplTeam: 'MI', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '192', name: 'Yudhvir Singh', role: 'Bowler', iplTeam: 'RR', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '169', name: 'Kuldeep Sen', role: 'Bowler', iplTeam: 'PBKS', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '72', name: 'Nishant Sindhu', role: 'All-Rounder', iplTeam: 'GT', owner: '5', totalPoints: 0, matchPoints: {} },
+  { id: '245', name: 'Sachin Baby', role: 'Batsman', iplTeam: 'SRH', owner: '5', totalPoints: 0, matchPoints: {} },
+
+  // Param's players
+  { id: '127', name: 'Hardik Pandya', role: 'All-Rounder', iplTeam: 'MI', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '179', name: 'Riyan Parag', role: 'Batsman', iplTeam: 'RR', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '10', name: 'MS Dhoni', role: 'Wicket Keeper', iplTeam: 'CSK', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '4', name: 'Shivam Dube', role: 'All-Rounder', iplTeam: 'CSK', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '76', name: 'Venkatesh Iyer', role: 'All-Rounder', iplTeam: 'KKR', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '51', name: 'Rashid Khan', role: 'Bowler', iplTeam: 'GT', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '156', name: 'Shashank Singh', role: 'Batsman', iplTeam: 'PBKS', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '3', name: 'Matheesha Pathirana', role: 'Bowler', iplTeam: 'CSK', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '7', name: 'Devon Conway', role: 'Batsman', iplTeam: 'CSK', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '60', name: 'Washington Sundar', role: 'All-Rounder', iplTeam: 'GT', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '108', name: 'Abdul Samad', role: 'Batsman', iplTeam: 'LSG', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '101', name: 'Rishabh Pant', role: 'Wicket Keeper', iplTeam: 'LSG', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '67', name: 'Arshad Khan', role: 'Bowler', iplTeam: 'GT', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '59', name: 'Rahul Tewatia', role: 'All-Rounder', iplTeam: 'GT', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '24', name: 'Mukesh Choudhary', role: 'Bowler', iplTeam: 'CSK', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '240', name: 'Jaydev Unadkat', role: 'Bowler', iplTeam: 'SRH', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '118', name: 'Arshin Kulkarni', role: 'All-Rounder', iplTeam: 'LSG', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '96', name: 'Mayank Markande', role: 'Bowler', iplTeam: 'KKR', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '123', name: 'Rajvardhan Hangargekar', role: 'All-Rounder', iplTeam: 'LSG', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '22', name: 'Ramakrishna Ghosh', role: 'Bowler', iplTeam: 'CSK', owner: '6', totalPoints: 0, matchPoints: {} },
+  { id: '216', name: 'Romario Shepherd', role: 'All-Rounder', iplTeam: 'RCB', owner: '6', totalPoints: 0, matchPoints: {} },
+
+  // Surya's players
+  { id: '56', name: 'Prasidh Krishna', role: 'Bowler', iplTeam: 'GT', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '201', name: 'Virat Kohli', role: 'Batsman', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '84', name: 'Quinton de Kock', role: 'Wicket Keeper', iplTeam: 'KKR', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '202', name: 'Josh Hazlewood', role: 'Bowler', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '205', name: 'Jitesh Sharma', role: 'Wicket Keeper', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '207', name: 'Liam Livingstone', role: 'All-Rounder', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '210', name: 'Yash Dayal', role: 'Bowler', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '109', name: 'Ayush Badoni', role: 'Batsman', iplTeam: 'LSG', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '184', name: 'Maheesh Theekshana', role: 'Bowler', iplTeam: 'RR', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '107', name: 'David Miller', role: 'Batsman', iplTeam: 'LSG', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '130', name: 'Trent Boult', role: 'Bowler', iplTeam: 'MI', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '206', name: 'Bhuvneshwar Kumar', role: 'Bowler', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '136', name: 'Mitchell Santner', role: 'All-Rounder', iplTeam: 'MI', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '105', name: 'Avesh Khan', role: 'Bowler', iplTeam: 'LSG', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '153', name: 'Yuzvendra Chahal', role: 'Bowler', iplTeam: 'PBKS', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '55', name: 'Kagiso Rabada', role: 'Bowler', iplTeam: 'GT', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '208', name: 'Rasikh Salam', role: 'Bowler', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '187', name: 'Fazalhaq Farooqi', role: 'Bowler', iplTeam: 'RR', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '43', name: 'Karun Nair', role: 'Batsman', iplTeam: 'DC', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '95', name: 'Luvnith Sisodia', role: 'Batsman', iplTeam: 'KKR', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '222', name: 'Manoj Bhandage', role: 'All-Rounder', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '215', name: 'Nuwan Thushara', role: 'Bowler', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '87', name: 'Rahmanullah Gurbaz', role: 'Wicket Keeper', iplTeam: 'KKR', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '220', name: 'Swastik Chikara', role: 'Batsman', iplTeam: 'RCB', owner: '7', totalPoints: 0, matchPoints: {} },
+  { id: '168', name: 'Vishnu Vinod', role: 'Wicket Keeper', iplTeam: 'PBKS', owner: '7', totalPoints: 0, matchPoints: {} },
+
+  // Venky's players
+  { id: '2', name: 'Ruturaj Gaikwad/Rutherford', role: 'Batsman', iplTeam: 'CSK', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '178', name: 'Dhruv Jurel', role: 'Wicket Keeper', iplTeam: 'RR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '180', name: 'Jofra Archer', role: 'Bowler', iplTeam: 'RR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '1', name: 'Ravindra Jadeja', role: 'All-Rounder', iplTeam: 'CSK', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '183', name: 'Wanindu Hasaranga', role: 'All-Rounder', iplTeam: 'RR', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '158', name: 'Glenn Maxwell', role: 'All-Rounder', iplTeam: 'PBKS', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '18', name: 'Vijay Shankar', role: 'All-Rounder', iplTeam: 'CSK', owner: '8', totalPoints: 0, matchPoints: {} },
+  { id: '231', name: 'Mohammad Shami', role: 'Bowler', iplTeam: 'SRH', owner: '8', totalPoints: 0, matchPoints: {} },

@@ -21,7 +21,7 @@ export type Player = {
   role: PlayerRole;
   iplTeam: IPLTeam;
   owner: string; // Owner ID
-  price: number;
+  price?: number;
   totalPoints: number;
   matchPoints: Record<string, number>; // matchId -> points
 };
