@@ -1,3 +1,4 @@
+
 import { IPLTeam, Match, Player, PlayerRole, PointsCategory, TeamOwner } from "../types";
 
 export const teamOwners: TeamOwner[] = [
@@ -246,21 +247,37 @@ export const sampleMatches: Match[] = [
 
 // Add function to return data initialized with correct owner player counts
 export const getInitializedData = () => {
+  // Try to get data from localStorage first
+  const storedOwners = localStorage.getItem('fantasyOwners');
+  const storedPlayers = localStorage.getItem('fantasyPlayers');
+  
+  if (storedOwners && storedPlayers) {
+    return {
+      owners: JSON.parse(storedOwners),
+      players: JSON.parse(storedPlayers)
+    };
+  }
+  
+  // If no data in localStorage, use the sample data
   const owners = [...teamOwners];
   const players = [...samplePlayers];
   
-  // Calculate player counts for each owner
-  const ownerPlayerCounts: Record<string, number> = {};
+  // Calculate player counts and total points for each owner
+  const ownerStats: Record<string, { count: number, points: number }> = {};
+  
   players.forEach(player => {
-    if (!ownerPlayerCounts[player.owner]) {
-      ownerPlayerCounts[player.owner] = 0;
+    if (!ownerStats[player.owner]) {
+      ownerStats[player.owner] = { count: 0, points: 0 };
     }
-    ownerPlayerCounts[player.owner]++;
+    ownerStats[player.owner].count++;
+    ownerStats[player.owner].points += player.totalPoints;
   });
   
-  // Update owner data with player counts
+  // Update owner data with player counts and total points
   owners.forEach(owner => {
-    owner.totalPlayers = ownerPlayerCounts[owner.id] || 0;
+    const stats = ownerStats[owner.id] || { count: 0, points: 0 };
+    owner.totalPlayers = stats.count;
+    owner.totalPoints = stats.points;
   });
   
   return { owners, players };

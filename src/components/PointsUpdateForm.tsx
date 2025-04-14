@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Match, Player } from "../types";
-import { getInitializedData } from "../data/sampleData";
-import { sampleMatches } from "../data/sampleData";
+import { getInitializedData, sampleMatches } from "../data/sampleData";
 import { toast } from "sonner";
 import { Search, Save } from "lucide-react";
 import { Input } from "./ui/input";
@@ -23,10 +22,10 @@ const PointsUpdateForm = () => {
     // Initialize player points
     const initialPoints: Record<string, number> = {};
     players.forEach(player => {
-      initialPoints[player.id] = 0;
+      initialPoints[player.id] = player.matchPoints[selectedMatch] || 0;
     });
     setPlayerPoints(initialPoints);
-  }, []);
+  }, [selectedMatch]);
 
   useEffect(() => {
     // Update current match teams when a match is selected
@@ -56,8 +55,7 @@ const PointsUpdateForm = () => {
       return;
     }
     
-    // Here we would save the points to a database
-    // For now, let's update the players' total points and display a success message
+    // Update the players' total points and save them to localStorage
     const updatedPlayers = players.map(player => {
       const matchPoint = playerPoints[player.id] || 0;
       const newMatchPoints = {
@@ -74,6 +72,28 @@ const PointsUpdateForm = () => {
         totalPoints: totalPoints
       };
     });
+    
+    // Save updated players to localStorage
+    localStorage.setItem('fantasyPlayers', JSON.stringify(updatedPlayers));
+    
+    // Update owners' total points
+    const { owners } = getInitializedData();
+    const ownerPointsMap: Record<string, number> = {};
+    
+    updatedPlayers.forEach(player => {
+      if (!ownerPointsMap[player.owner]) {
+        ownerPointsMap[player.owner] = 0;
+      }
+      ownerPointsMap[player.owner] += player.totalPoints;
+    });
+    
+    const updatedOwners = owners.map(owner => ({
+      ...owner,
+      totalPoints: ownerPointsMap[owner.id] || 0
+    }));
+    
+    // Save updated owners to localStorage
+    localStorage.setItem('fantasyOwners', JSON.stringify(updatedOwners));
     
     setPlayers(updatedPlayers);
     toast.success("Points saved successfully!");

@@ -12,9 +12,20 @@ const Dashboard = () => {
   const [showSquadModal, setShowSquadModal] = useState(false);
 
   useEffect(() => {
-    const { owners, players } = getInitializedData();
-    setTeams(owners);
-    setPlayers(players);
+    // Try to get data from localStorage first
+    const storedOwners = localStorage.getItem('fantasyOwners');
+    const storedPlayers = localStorage.getItem('fantasyPlayers');
+    
+    if (storedOwners && storedPlayers) {
+      // Use data from localStorage if available
+      setTeams(JSON.parse(storedOwners));
+      setPlayers(JSON.parse(storedPlayers));
+    } else {
+      // Fall back to initial data if localStorage is empty
+      const { owners, players } = getInitializedData();
+      setTeams(owners);
+      setPlayers(players);
+    }
   }, []);
 
   // Sort teams by total points (descending)
