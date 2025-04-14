@@ -14,6 +14,7 @@ const PointsUpdateForm = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [playerPoints, setPlayerPoints] = useState<Record<string, number>>({});
   const [filterOwner, setFilterOwner] = useState<string>("all");
+  const [currentMatchTeams, setCurrentMatchTeams] = useState<string[]>([]);
   
   useEffect(() => {
     const { players } = getInitializedData();
@@ -26,6 +27,18 @@ const PointsUpdateForm = () => {
     });
     setPlayerPoints(initialPoints);
   }, []);
+
+  useEffect(() => {
+    // Update current match teams when a match is selected
+    if (selectedMatch) {
+      const match = matches.find(m => m.id === selectedMatch);
+      if (match) {
+        setCurrentMatchTeams([match.team1, match.team2]);
+      }
+    } else {
+      setCurrentMatchTeams([]);
+    }
+  }, [selectedMatch, matches]);
 
   const handlePointChange = (playerId: string, value: string) => {
     const pointValue = value === '' ? 0 : parseInt(value);
@@ -66,10 +79,12 @@ const PointsUpdateForm = () => {
     toast.success("Points saved successfully!");
   };
 
+  // Filter players by match teams, owner, and search term
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesOwner = filterOwner === "all" || player.owner === filterOwner;
-    return matchesSearch && matchesOwner;
+    const matchesTeam = currentMatchTeams.length === 0 || currentMatchTeams.includes(player.iplTeam);
+    return matchesSearch && matchesOwner && matchesTeam;
   });
 
   // Sort players by owner and name
