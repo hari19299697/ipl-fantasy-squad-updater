@@ -4,6 +4,7 @@ import { getInitializedData } from "../data/sampleData";
 import { TeamOwner, Player } from "../types";
 import TeamCard from "./TeamCard";
 import TeamSquadModal from "./TeamSquadModal";
+import ExportButton from "./ExportButton";
 
 const Dashboard = () => {
   const [teams, setTeams] = useState<TeamOwner[]>([]);
@@ -42,9 +43,12 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-ipl-dark">Fantasy Leaderboard</h1>
-        <p className="text-gray-500">Track points and rankings for all team owners</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-ipl-dark">Fantasy Leaderboard</h1>
+          <p className="text-gray-500">Track points and rankings for all team owners</p>
+        </div>
+        <ExportButton className="ml-auto" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
