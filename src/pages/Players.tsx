@@ -1,14 +1,14 @@
 
 import Header from "../components/Header";
-import Dashboard from "../components/Dashboard";
+import PlayersList from "../components/PlayersList";
 
-const Index = () => {
+const Players = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <Dashboard />
+      <PlayersList />
     </div>
   );
 };
 
-export default Index;
+export default Players;
