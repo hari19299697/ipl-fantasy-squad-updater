@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Match, Player } from "../types";
 import { getInitializedData, sampleMatches } from "../data/sampleData";
@@ -19,7 +18,6 @@ const PointsUpdateForm = () => {
     const { players } = getInitializedData();
     setPlayers(players);
     
-    // Initialize player points
     const initialPoints: Record<string, number> = {};
     players.forEach(player => {
       initialPoints[player.id] = player.matchPoints[selectedMatch] || 0;
@@ -28,7 +26,6 @@ const PointsUpdateForm = () => {
   }, [selectedMatch]);
 
   useEffect(() => {
-    // Update current match teams when a match is selected
     if (selectedMatch) {
       const match = matches.find(m => m.id === selectedMatch);
       if (match) {
@@ -55,7 +52,6 @@ const PointsUpdateForm = () => {
       return;
     }
     
-    // Update the players' total points and save them to localStorage
     const updatedPlayers = players.map(player => {
       const matchPoint = playerPoints[player.id] || 0;
       const newMatchPoints = {
@@ -63,7 +59,6 @@ const PointsUpdateForm = () => {
         [selectedMatch]: matchPoint
       };
       
-      // Calculate new total points
       const totalPoints = Object.values(newMatchPoints).reduce((sum, points) => sum + points, 0);
       
       return {
@@ -73,10 +68,8 @@ const PointsUpdateForm = () => {
       };
     });
     
-    // Save updated players to localStorage
     localStorage.setItem('fantasyPlayers', JSON.stringify(updatedPlayers));
     
-    // Update owners' total points
     const { owners } = getInitializedData();
     const ownerPointsMap: Record<string, number> = {};
     
@@ -92,31 +85,26 @@ const PointsUpdateForm = () => {
       totalPoints: ownerPointsMap[owner.id] || 0
     }));
     
-    // Save updated owners to localStorage
     localStorage.setItem('fantasyOwners', JSON.stringify(updatedOwners));
     
     setPlayers(updatedPlayers);
     toast.success("Points saved successfully!");
+    
+    const currentMatchIndex = matches.findIndex(m => m.id === selectedMatch);
+    if (currentMatchIndex < matches.length - 1) {
+      setSelectedMatch(matches[currentMatchIndex + 1].id);
+    } else {
+      setSelectedMatch('');
+      toast.success("All matches completed!");
+    }
   };
 
-  // Filter players by match teams, owner, and search term
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesOwner = filterOwner === "all" || player.owner === filterOwner;
     const matchesTeam = currentMatchTeams.length === 0 || currentMatchTeams.includes(player.iplTeam);
     return matchesSearch && matchesOwner && matchesTeam;
-  });
-
-  // Sort players by owner and name
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
-    if (a.owner !== b.owner) {
-      return parseInt(a.owner) - parseInt(b.owner);
-    }
-    return a.name.localeCompare(b.name);
-  });
-
-  // Get the unique owners from the players
-  const owners = [...new Set(players.map(player => player.owner))];
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -210,7 +198,7 @@ const PointsUpdateForm = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedPlayers.map(player => (
+                {filteredPlayers.map(player => (
                   <tr key={player.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -243,7 +231,7 @@ const PointsUpdateForm = () => {
                   </tr>
                 ))}
                 
-                {sortedPlayers.length === 0 && (
+                {filteredPlayers.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                       No players found. Try a different search term or filter.
