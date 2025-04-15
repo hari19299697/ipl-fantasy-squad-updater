@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Match, Player } from "../types";
 import { getInitializedData, sampleMatches } from "../data/sampleData";
@@ -13,6 +14,7 @@ const PointsUpdateForm = () => {
   const [playerPoints, setPlayerPoints] = useState<Record<string, number>>({});
   const [filterOwner, setFilterOwner] = useState<string>("all");
   const [currentMatchTeams, setCurrentMatchTeams] = useState<string[]>([]);
+  const [ownersList, setOwnersList] = useState<string[]>([]);
   
   useEffect(() => {
     const { players } = getInitializedData();
@@ -23,6 +25,10 @@ const PointsUpdateForm = () => {
       initialPoints[player.id] = player.matchPoints[selectedMatch] || 0;
     });
     setPlayerPoints(initialPoints);
+    
+    // Extract unique owner IDs from players
+    const uniqueOwners = [...new Set(players.map(player => player.owner))];
+    setOwnersList(uniqueOwners);
   }, [selectedMatch]);
 
   useEffect(() => {
@@ -143,7 +149,7 @@ const PointsUpdateForm = () => {
               onChange={(e) => setFilterOwner(e.target.value)}
             >
               <option value="all">All Owners</option>
-              {owners.map(ownerId => (
+              {ownersList.map(ownerId => (
                 <option key={ownerId} value={ownerId}>Owner {ownerId}</option>
               ))}
             </select>
