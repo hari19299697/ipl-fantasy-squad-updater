@@ -27,7 +27,7 @@ const PointsUpdateForm = () => {
     setPlayerPoints(initialPoints);
     
     // Extract unique owner IDs from players
-    const uniqueOwners = [...new Set(players.map(player => player.owner))];
+    const uniqueOwners = Array.from(new Set(players.map(player => player.owner))) as string[];
     setOwnersList(uniqueOwners);
   }, [selectedMatch]);
 
