@@ -149,6 +149,23 @@ const Auction = () => {
     return <div className="p-8">Tournament not found</div>;
   }
 
+  // Check if there are no players at all
+  if (players.length === 0) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <Gavel className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h1 className="text-3xl font-bold mb-4">No Players Available</h1>
+          <p className="text-muted-foreground mb-8">Please add players to start the auction</p>
+          <Button onClick={() => navigate(`/tournaments/${tournamentId}`)}>
+            Back to Tournament
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if all players have been auctioned
   if (unsoldPlayers.length === 0) {
     return (
       <div className="min-h-screen bg-background p-8">
