@@ -15,6 +15,9 @@ import TeamCard from "@/components/TeamCard";
 import TeamSquadModal from "@/components/TeamSquadModal";
 import TeamManagementModal from "@/components/TeamManagementModal";
 import PlayerManagementModal from "@/components/PlayerManagementModal";
+import RealTeamManagementModal from "@/components/RealTeamManagementModal";
+import CategoryManagementModal from "@/components/CategoryManagementModal";
+import MatchManagementModal from "@/components/MatchManagementModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -32,6 +35,9 @@ const TournamentDetail = () => {
   const [showSquadModal, setShowSquadModal] = useState(false);
   const [showTeamManagement, setShowTeamManagement] = useState(false);
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
+  const [showRealTeamManagement, setShowRealTeamManagement] = useState(false);
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const [showMatchManagement, setShowMatchManagement] = useState(false);
 
   const isLoading = loadingTournament || loadingPlayers || loadingOwners || loadingMatches;
 
@@ -160,10 +166,11 @@ const TournamentDetail = () => {
 
         {/* Tabs for different views */}
         <Tabs defaultValue="leaderboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
             <TabsTrigger value="players">All Players</TabsTrigger>
             <TabsTrigger value="matches">Matches</TabsTrigger>
+            <TabsTrigger value="masters">Masters</TabsTrigger>
           </TabsList>
 
           {/* Leaderboard Tab */}
@@ -263,8 +270,16 @@ const TournamentDetail = () => {
           <TabsContent value="matches" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Matches Schedule</CardTitle>
-                <CardDescription>All matches in this tournament</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Matches Schedule</CardTitle>
+                    <CardDescription>All matches in this tournament</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowMatchManagement(true)} variant="outline">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Matches
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -298,6 +313,37 @@ const TournamentDetail = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Masters Tab */}
+          <TabsContent value="masters" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Real Teams</CardTitle>
+                  <CardDescription>Manage actual cricket teams</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setShowRealTeamManagement(true)} className="w-full">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Real Teams
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Categories</CardTitle>
+                  <CardDescription>Manage player categories</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setShowCategoryManagement(true)} className="w-full">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Categories
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
 
         {selectedTeam && (
@@ -319,6 +365,24 @@ const TournamentDetail = () => {
         <PlayerManagementModal
           isOpen={showPlayerManagement}
           onClose={() => setShowPlayerManagement(false)}
+          tournamentId={id || ""}
+        />
+
+        <RealTeamManagementModal
+          isOpen={showRealTeamManagement}
+          onClose={() => setShowRealTeamManagement(false)}
+          tournamentId={id || ""}
+        />
+
+        <CategoryManagementModal
+          isOpen={showCategoryManagement}
+          onClose={() => setShowCategoryManagement(false)}
+          tournamentId={id || ""}
+        />
+
+        <MatchManagementModal
+          isOpen={showMatchManagement}
+          onClose={() => setShowMatchManagement(false)}
           tournamentId={id || ""}
         />
       </div>

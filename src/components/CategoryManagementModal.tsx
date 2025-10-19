@@ -1,0 +1,165 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useCategories } from "@/hooks/useCategories";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Download, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
+
+interface CategoryManagementModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tournamentId: string;
+}
+
+const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryManagementModalProps) => {
+  const { categories, bulkCreateCategories } = useCategories(tournamentId);
+  const { toast } = useToast();
+  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
+
+  const handleAddCategory = () => {
+    if (!newCategory.name) {
+      toast({ title: "Error", description: "Please enter category name", variant: "destructive" });
+      return;
+    }
+
+    bulkCreateCategories([{
+      tournament_id: tournamentId,
+      name: newCategory.name,
+      description: newCategory.description || undefined,
+    }]);
+
+    setNewCategory({ name: "", description: "" });
+  };
+
+  const handleExport = () => {
+    const exportData = categories.map((cat) => ({
+      Name: cat.name,
+      Description: cat.description || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Categories");
+    XLSX.writeFile(wb, `categories_${tournamentId}.xlsx`);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        const categoriesToImport = jsonData.map((row) => ({
+          tournament_id: tournamentId,
+          name: row.Name || row.name,
+          description: row.Description || row.description || undefined,
+        }));
+
+        bulkCreateCategories(categoriesToImport);
+      } catch (error) {
+        toast({ title: "Import Error", description: "Failed to import file", variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = "";
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Manage Categories</DialogTitle>
+          <DialogDescription>Add or import player categories for this tournament</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Add New Category */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Category
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <Label>Category Name *</Label>
+                <Input
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  placeholder="A, B, C, etc."
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                  placeholder="Optional description"
+                  rows={2}
+                />
+              </div>
+            </div>
+            <Button onClick={handleAddCategory} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Category
+            </Button>
+          </div>
+
+          {/* Import/Export */}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport} className="flex-1">
+              <Download className="h-4 w-4 mr-2" />
+              Export to Excel
+            </Button>
+            <Button variant="outline" className="flex-1" asChild>
+              <label>
+                <Upload className="h-4 w-4 mr-2" />
+                Import from Excel
+                <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+              </label>
+            </Button>
+          </div>
+
+          {/* Categories List */}
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category Name</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.map((cat) => (
+                  <TableRow key={cat.id}>
+                    <TableCell className="font-medium">{cat.name}</TableCell>
+                    <TableCell>{cat.description || "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {categories.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                      No categories added yet
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default CategoryManagementModal;
