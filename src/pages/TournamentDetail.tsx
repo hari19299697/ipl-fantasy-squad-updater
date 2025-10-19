@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel } from "lucide-react";
 import { format } from "date-fns";
 import TeamCard from "@/components/TeamCard";
 import TeamSquadModal from "@/components/TeamSquadModal";
@@ -92,7 +92,7 @@ const TournamentDetail = () => {
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <Trophy className="h-8 w-8 text-primary" />
                   <CardTitle className="text-3xl">{tournament.name}</CardTitle>
@@ -104,10 +104,29 @@ const TournamentDetail = () => {
                   {tournament.type} Tournament
                 </CardDescription>
               </div>
-              <Button onClick={() => navigate(`/update-points`)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Update Points
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => navigate(`/auction/${tournament.id}`)}
+                  variant="default"
+                >
+                  <Gavel className="h-4 w-4 mr-2" />
+                  Start Auction
+                </Button>
+                <Button
+                  onClick={() => navigate(`/update-points/${tournament.id}`)}
+                  variant="secondary"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Update Points
+                </Button>
+                <Button
+                  onClick={() => navigate(`/players/${tournament.id}`)}
+                  variant="outline"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  All Players
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

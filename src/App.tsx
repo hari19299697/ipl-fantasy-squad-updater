@@ -7,14 +7,15 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TournamentProvider } from "./contexts/TournamentContext";
 import Landing from "./pages/Landing";
 import Index from "./pages/Index";
-import Players from "./pages/Players";
-import UpdatePoints from "./pages/UpdatePoints";
 import Tournaments from "./pages/Tournaments";
 import TournamentNew from "./pages/TournamentNew";
 import TournamentCreate from "./pages/TournamentCreate";
 import TournamentDetail from "./pages/TournamentDetail";
 import Masters from "./pages/Masters";
 import MatchManagement from "./pages/MatchManagement";
+import Auction from "./pages/Auction";
+import UpdatePoints from "./pages/UpdatePoints";
+import Players from "./pages/Players";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,9 +32,10 @@ const App = () => (
             <Route path="/dashboard" element={<Index />} />
             <Route path="/tournaments" element={<Tournaments />} />
             <Route path="/tournaments/new" element={<TournamentCreate />} />
-            <Route path="/tournaments/:id" element={<TournamentDetail />} />
-            <Route path="/players" element={<Players />} />
-            <Route path="/update-points" element={<UpdatePoints />} />
+            <Route path="/tournament/:id" element={<TournamentDetail />} />
+            <Route path="/auction/:id" element={<Auction />} />
+            <Route path="/update-points/:id" element={<UpdatePoints />} />
+            <Route path="/players/:id" element={<Players />} />
             <Route path="/masters" element={<Masters />} />
             <Route path="/matches" element={<MatchManagement />} />
             <Route path="*" element={<NotFound />} />

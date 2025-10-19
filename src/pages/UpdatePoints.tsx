@@ -1,12 +1,283 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { usePlayers } from '@/hooks/usePlayers';
+import { useTournament } from '@/hooks/useTournaments';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Save } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-import Header from "../components/Header";
-import PointsUpdateForm from "../components/PointsUpdateForm";
+interface Match {
+  id: string;
+  match_number: number;
+  match_date: string;
+  venue: string;
+  team1: { name: string };
+  team2: { name: string };
+}
 
 const UpdatePoints = () => {
+  const { id: tournamentId } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: tournament, isLoading: tournamentLoading } = useTournament(tournamentId);
+  const { players, isLoading: playersLoading } = usePlayers(tournamentId);
+
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<string>('');
+  const [playerPoints, setPlayerPoints] = useState<{ [key: string]: string }>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (tournamentId) {
+      fetchMatches();
+    }
+  }, [tournamentId]);
+
+  useEffect(() => {
+    if (selectedMatch) {
+      fetchExistingPoints();
+    }
+  }, [selectedMatch]);
+
+  const fetchMatches = async () => {
+    const { data, error } = await supabase
+      .from('matches')
+      .select(`
+        *,
+        team1:real_teams!matches_team1_id_fkey(name),
+        team2:real_teams!matches_team2_id_fkey(name)
+      `)
+      .eq('tournament_id', tournamentId)
+      .order('match_number');
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch matches",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setMatches(data || []);
+  };
+
+  const fetchExistingPoints = async () => {
+    const { data, error } = await supabase
+      .from('player_match_points')
+      .select('player_id, points')
+      .eq('match_id', selectedMatch);
+
+    if (error) return;
+
+    const pointsMap: { [key: string]: string } = {};
+    data?.forEach(p => {
+      pointsMap[p.player_id] = p.points.toString();
+    });
+    setPlayerPoints(pointsMap);
+  };
+
+  const handleSave = async () => {
+    if (!selectedMatch) {
+      toast({
+        title: "Error",
+        description: "Please select a match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      // Delete existing points for this match
+      await supabase
+        .from('player_match_points')
+        .delete()
+        .eq('match_id', selectedMatch);
+
+      // Insert new points
+      const pointsData = Object.entries(playerPoints)
+        .filter(([_, points]) => points && parseInt(points) > 0)
+        .map(([playerId, points]) => ({
+          match_id: selectedMatch,
+          player_id: playerId,
+          points: parseInt(points),
+        }));
+
+      if (pointsData.length > 0) {
+        const { error } = await supabase
+          .from('player_match_points')
+          .insert(pointsData);
+
+        if (error) throw error;
+
+        // Update player total points
+        for (const player of players) {
+          const { data: matchPoints } = await supabase
+            .from('player_match_points')
+            .select('points')
+            .eq('player_id', player.id);
+
+          const totalPoints = matchPoints?.reduce((sum, mp) => sum + mp.points, 0) || 0;
+
+          await supabase
+            .from('players')
+            .update({ total_points: totalPoints })
+            .eq('id', player.id);
+        }
+
+        // Update team owner total points
+        for (const player of players.filter(p => p.owner_id)) {
+          const { data: teamPlayers } = await supabase
+            .from('players')
+            .select('total_points')
+            .eq('owner_id', player.owner_id);
+
+          const teamTotal = teamPlayers?.reduce((sum, p) => sum + (p.total_points || 0), 0) || 0;
+
+          await supabase
+            .from('team_owners')
+            .update({ total_points: teamTotal })
+            .eq('id', player.owner_id);
+        }
+      }
+
+      // Mark match as completed
+      await supabase
+        .from('matches')
+        .update({ is_completed: true })
+        .eq('id', selectedMatch);
+
+      toast({
+        title: "Success",
+        description: "Points updated successfully",
+      });
+
+      navigate(`/tournament/${tournamentId}`);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update points",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (tournamentLoading || playersLoading) {
+    return <div className="p-8">Loading...</div>;
+  }
+
+  if (!tournament) {
+    return <div className="p-8">Tournament not found</div>;
+  }
+
+  const selectedMatchData = matches.find(m => m.id === selectedMatch);
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <PointsUpdateForm />
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(`/tournament/${tournamentId}`)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Update Player Points</h1>
+            <p className="text-muted-foreground">{tournament.name}</p>
+          </div>
+        </div>
+
+        <Card className="p-6 mb-6">
+          <div className="space-y-4">
+            <div>
+              <Label>Select Match</Label>
+              <Select value={selectedMatch} onValueChange={setSelectedMatch}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a match" />
+                </SelectTrigger>
+                <SelectContent>
+                  {matches.map((match) => (
+                    <SelectItem key={match.id} value={match.id}>
+                      Match {match.match_number}: {match.team1.name} vs {match.team2.name}
+                      {match.venue && ` - ${match.venue}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
+
+        {selectedMatch && selectedMatchData && (
+          <>
+            <Card className="p-6 mb-6 bg-primary/5">
+              <h3 className="font-semibold mb-2">
+                Match {selectedMatchData.match_number}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {selectedMatchData.team1.name} vs {selectedMatchData.team2.name}
+              </p>
+              {selectedMatchData.venue && (
+                <p className="text-sm text-muted-foreground">
+                  Venue: {selectedMatchData.venue}
+                </p>
+              )}
+            </Card>
+
+            <Card className="p-6">
+              <div className="space-y-4">
+                {players.map((player) => (
+                  <div key={player.id} className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <p className="font-medium">{player.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {player.real_teams?.name} • {player.team_owners?.name || 'Unsold'}
+                      </p>
+                    </div>
+                    <div className="w-32">
+                      <Input
+                        type="number"
+                        placeholder="Points"
+                        value={playerPoints[player.id] || ''}
+                        onChange={(e) =>
+                          setPlayerPoints({
+                            ...playerPoints,
+                            [player.id]: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <Button onClick={handleSave} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save Points'}
+                </Button>
+              </div>
+            </Card>
+          </>
+        )}
+      </div>
     </div>
   );
 };
