@@ -24,7 +24,7 @@ export const useCategories = (tournamentId: string | undefined) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (newCategory: { tournament_id: string; name: string; description?: string }) => {
+    mutationFn: async (newCategory: { tournament_id: string; name: string; description?: string; adder?: number }) => {
       const { data, error } = await supabase
         .from('categories')
         .insert([newCategory])
@@ -51,7 +51,7 @@ export const useCategories = (tournamentId: string | undefined) => {
   });
 
   const bulkCreateMutation = useMutation({
-    mutationFn: async (newCategories: { tournament_id: string; name: string; description?: string }[]) => {
+    mutationFn: async (newCategories: { tournament_id: string; name: string; description?: string; adder?: number }[]) => {
       const { data, error } = await supabase
         .from('categories')
         .insert(newCategories)

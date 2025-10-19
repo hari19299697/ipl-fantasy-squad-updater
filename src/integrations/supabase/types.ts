@@ -128,6 +128,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          adder: number | null
           created_at: string | null
           description: string | null
           id: string
@@ -135,6 +136,7 @@ export type Database = {
           tournament_id: string
         }
         Insert: {
+          adder?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -142,6 +144,7 @@ export type Database = {
           tournament_id: string
         }
         Update: {
+          adder?: number | null
           created_at?: string | null
           description?: string | null
           id?: string

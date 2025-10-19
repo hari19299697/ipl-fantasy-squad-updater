@@ -19,7 +19,7 @@ interface CategoryManagementModalProps {
 const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryManagementModalProps) => {
   const { categories, bulkCreateCategories } = useCategories(tournamentId);
   const { toast } = useToast();
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", adder: "1000" });
 
   const handleAddCategory = () => {
     if (!newCategory.name) {
@@ -31,15 +31,17 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
       tournament_id: tournamentId,
       name: newCategory.name,
       description: newCategory.description || undefined,
+      adder: parseInt(newCategory.adder) || 1000,
     }]);
 
-    setNewCategory({ name: "", description: "" });
+    setNewCategory({ name: "", description: "", adder: "1000" });
   };
 
   const handleExport = () => {
     const exportData = categories.map((cat) => ({
       Name: cat.name,
       Description: cat.description || "",
+      Adder: cat.adder || 1000,
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -64,6 +66,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
           tournament_id: tournamentId,
           name: row.Name || row.name,
           description: row.Description || row.description || undefined,
+          adder: parseInt(row.Adder || row.adder) || 1000,
         }));
 
         bulkCreateCategories(categoriesToImport);
@@ -108,6 +111,15 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                   rows={2}
                 />
               </div>
+              <div>
+                <Label>Bid Increment (Adder) *</Label>
+                <Input
+                  type="number"
+                  value={newCategory.adder}
+                  onChange={(e) => setNewCategory({ ...newCategory, adder: e.target.value })}
+                  placeholder="1000"
+                />
+              </div>
             </div>
             <Button onClick={handleAddCategory} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
@@ -137,6 +149,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                 <TableRow>
                   <TableHead>Category Name</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Bid Increment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,11 +157,12 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                   <TableRow key={cat.id}>
                     <TableCell className="font-medium">{cat.name}</TableCell>
                     <TableCell>{cat.description || "—"}</TableCell>
+                    <TableCell>₹{cat.adder?.toLocaleString() || '1,000'}</TableCell>
                   </TableRow>
                 ))}
                 {categories.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                       No categories added yet
                     </TableCell>
                   </TableRow>

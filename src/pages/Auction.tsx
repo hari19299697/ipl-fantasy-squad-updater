@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useTeamOwners } from '@/hooks/useTeamOwners';
 import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Gavel, Trophy, DollarSign } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Gavel, Trophy, DollarSign, Plus, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auction = () => {
@@ -18,14 +20,50 @@ const Auction = () => {
   const { data: tournament, isLoading: tournamentLoading } = useTournament(tournamentId);
   const { players, isLoading: playersLoading, updatePlayer } = usePlayers(tournamentId);
   const { teamOwners, isLoading: ownersLoading } = useTeamOwners(tournamentId);
+  const { categories, isLoading: categoriesLoading } = useCategories(tournamentId);
 
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [currentBid, setCurrentBid] = useState(0);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState('');
 
+  // Group players by category
+  const playersByCategory = categories.map(category => ({
+    category,
+    players: players.filter(p => p.category === category.name && !p.owner_id)
+  }));
+
+  const soldPlayers = players.filter(p => p.owner_id);
   const unsoldPlayers = players.filter(p => !p.owner_id);
-  const currentPlayer = unsoldPlayers[currentPlayerIndex];
+
+  const currentCategory = playersByCategory[currentCategoryIndex];
+  const currentCategoryPlayers = currentCategory?.players || [];
+  const currentPlayer = currentCategoryPlayers[currentPlayerIndex];
+
+  // Set initial bid when player changes
+  useEffect(() => {
+    if (currentPlayer) {
+      setCurrentBid(currentPlayer.base_price || 0);
+      setBidAmount('');
+      setSelectedOwner(null);
+    }
+  }, [currentPlayer]);
+
+  const handleIncrementBid = () => {
+    if (!currentPlayer || !currentCategory) return;
+
+    const adder = currentCategory.category.adder || 1000;
+    const newBid = currentBid + adder;
+
+    setCurrentBid(newBid);
+    setBidAmount(newBid.toString());
+
+    toast({
+      title: "Bid Incremented",
+      description: `New bid: ₹${newBid.toLocaleString()}`,
+    });
+  };
 
   const handleBid = async () => {
     if (!selectedOwner || !bidAmount || !currentPlayer) return;
@@ -112,11 +150,23 @@ const Auction = () => {
       description: `${currentPlayer.name} sold to ${owner.name} for ₹${currentBid.toLocaleString()}`,
     });
 
-    // Move to next player
-    setCurrentPlayerIndex(prev => prev + 1);
-    setCurrentBid(0);
-    setSelectedOwner(null);
-    setBidAmount('');
+    // Move to next player in current category
+    if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
+      setCurrentPlayerIndex(prev => prev + 1);
+    } else {
+      // Current category complete, check if there are more categories
+      if (currentCategoryIndex + 1 < playersByCategory.length) {
+        toast({
+          title: "Category Complete!",
+          description: `${currentCategory.category.name} auction complete. Click "Next Category" to continue.`,
+        });
+      } else {
+        toast({
+          title: "Auction Complete!",
+          description: "All categories have been auctioned",
+        });
+      }
+    }
   };
 
   const handleUnsold = async () => {
@@ -135,13 +185,37 @@ const Auction = () => {
       description: `${currentPlayer.name} remains unsold`,
     });
 
-    setCurrentPlayerIndex(prev => prev + 1);
-    setCurrentBid(0);
-    setSelectedOwner(null);
-    setBidAmount('');
+    // Move to next player in current category
+    if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
+      setCurrentPlayerIndex(prev => prev + 1);
+    } else {
+      // Current category complete
+      if (currentCategoryIndex + 1 < playersByCategory.length) {
+        toast({
+          title: "Category Complete!",
+          description: `${currentCategory.category.name} auction complete. Click "Next Category" to continue.`,
+        });
+      } else {
+        toast({
+          title: "Auction Complete!",
+          description: "All categories have been auctioned",
+        });
+      }
+    }
   };
 
-  if (tournamentLoading || playersLoading || ownersLoading) {
+  const handleNextCategory = () => {
+    if (currentCategoryIndex + 1 < playersByCategory.length) {
+      setCurrentCategoryIndex(prev => prev + 1);
+      setCurrentPlayerIndex(0);
+      toast({
+        title: "New Category Started",
+        description: `Starting ${playersByCategory[currentCategoryIndex + 1].category.name} auction`,
+      });
+    }
+  };
+
+  if (tournamentLoading || playersLoading || ownersLoading || categoriesLoading) {
     return <div className="p-8">Loading...</div>;
   }
 
@@ -165,21 +239,7 @@ const Auction = () => {
     );
   }
 
-  // Check if all players have been auctioned
-  if (unsoldPlayers.length === 0) {
-    return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <Trophy className="w-16 h-16 mx-auto mb-4 text-primary" />
-          <h1 className="text-3xl font-bold mb-4">Auction Complete!</h1>
-          <p className="text-muted-foreground mb-8">All players have been auctioned</p>
-          <Button onClick={() => navigate(`/tournaments/${tournamentId}`)}>
-            View Tournament
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const allPlayersAuctioned = unsoldPlayers.length === 0;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -201,103 +261,245 @@ const Auction = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Current Player */}
-          <div className="lg:col-span-2">
-            {currentPlayer && (
-              <Card className="p-6">
-                <div className="text-center mb-6">
-                  <Badge variant="secondary" className="mb-4">
-                    Player {currentPlayerIndex + 1} of {unsoldPlayers.length}
-                  </Badge>
-                  <h2 className="text-4xl font-bold mb-2">{currentPlayer.name}</h2>
-                  <div className="flex justify-center gap-4 text-sm text-muted-foreground">
-                    <span className="capitalize">{currentPlayer.role}</span>
-                    <span>•</span>
-                    <span>{currentPlayer.real_teams?.name}</span>
-                    <span>•</span>
-                    <span>Base: ₹{currentPlayer.base_price?.toLocaleString()}</span>
-                  </div>
-                </div>
+        <Tabs defaultValue="live" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="live">Live Auction</TabsTrigger>
+            <TabsTrigger value="all-players">All Players</TabsTrigger>
+            <TabsTrigger value="sold">Sold ({soldPlayers.length})</TabsTrigger>
+            <TabsTrigger value="unsold">Unsold ({unsoldPlayers.length})</TabsTrigger>
+          </TabsList>
 
-                <div className="bg-primary/10 rounded-lg p-6 mb-6 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Current Bid</p>
-                  <p className="text-5xl font-bold text-primary">
-                    ₹{currentBid === 0 ? currentPlayer.base_price?.toLocaleString() : currentBid.toLocaleString()}
-                  </p>
-                  {selectedOwner && (
-                    <p className="text-sm mt-2">
-                      by {teamOwners.find(o => o.id === selectedOwner)?.name}
-                    </p>
+          <TabsContent value="live">
+            {allPlayersAuctioned ? (
+              <div className="text-center py-12">
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-primary" />
+                <h2 className="text-3xl font-bold mb-4">Auction Complete!</h2>
+                <p className="text-muted-foreground mb-8">All players have been auctioned</p>
+                <Button onClick={() => navigate(`/tournaments/${tournamentId}`)}>
+                  View Tournament
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Current Player */}
+                <div className="lg:col-span-2">
+                  {currentPlayer ? (
+                    <Card className="p-6">
+                      <div className="text-center mb-6">
+                        <div className="flex justify-center gap-2 mb-4">
+                          <Badge variant="secondary">
+                            Category: {currentCategory.category.name}
+                          </Badge>
+                          <Badge variant="outline">
+                            Player {currentPlayerIndex + 1} of {currentCategoryPlayers.length}
+                          </Badge>
+                        </div>
+                        <h2 className="text-4xl font-bold mb-2">{currentPlayer.name}</h2>
+                        <div className="flex justify-center gap-4 text-sm text-muted-foreground">
+                          <span className="capitalize">{currentPlayer.role}</span>
+                          <span>•</span>
+                          <span>{currentPlayer.real_teams?.name}</span>
+                          <span>•</span>
+                          <span>Base: ₹{currentPlayer.base_price?.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-primary/10 rounded-lg p-6 mb-6 text-center">
+                        <p className="text-sm text-muted-foreground mb-2">Current Bid</p>
+                        <p className="text-5xl font-bold text-primary">
+                          ₹{currentBid.toLocaleString()}
+                        </p>
+                        {selectedOwner && (
+                          <p className="text-sm mt-2">
+                            by {teamOwners.find(o => o.id === selectedOwner)?.name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleIncrementBid}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add ₹{currentCategory.category.adder?.toLocaleString() || '1,000'}
+                          </Button>
+                          <Input
+                            type="number"
+                            placeholder="Or enter custom bid"
+                            value={bidAmount}
+                            onChange={(e) => setBidAmount(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button onClick={handleBid} disabled={!selectedOwner || !bidAmount}>
+                            Place Bid
+                          </Button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleSold}
+                            disabled={currentBid === 0 || !selectedOwner}
+                            className="flex-1"
+                          >
+                            Sold
+                          </Button>
+                          <Button
+                            onClick={handleUnsold}
+                            variant="secondary"
+                            className="flex-1"
+                          >
+                            Unsold
+                          </Button>
+                        </div>
+
+                        {currentPlayerIndex + 1 >= currentCategoryPlayers.length && 
+                         currentCategoryIndex + 1 < playersByCategory.length && (
+                          <Button
+                            onClick={handleNextCategory}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Next Category: {playersByCategory[currentCategoryIndex + 1].category.name}
+                            <ChevronRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  ) : (
+                    <Card className="p-6 text-center">
+                      <p className="text-muted-foreground">
+                        {currentCategory 
+                          ? `No more players in ${currentCategory.category.name} category`
+                          : 'No players available for auction'}
+                      </p>
+                      {currentCategoryIndex + 1 < playersByCategory.length && (
+                        <Button onClick={handleNextCategory} className="mt-4">
+                          Next Category: {playersByCategory[currentCategoryIndex + 1].category.name}
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
+                    </Card>
                   )}
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      placeholder="Enter bid amount"
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleBid} disabled={!selectedOwner || !bidAmount}>
-                      Place Bid
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSold}
-                      disabled={currentBid === 0}
-                      className="flex-1"
-                    >
-                      Sold
-                    </Button>
-                    <Button
-                      onClick={handleUnsold}
-                      variant="secondary"
-                      className="flex-1"
-                    >
-                      Unsold
-                    </Button>
-                  </div>
+                {/* Team Owners */}
+                <div>
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Team Owners</h3>
+                    <div className="space-y-2">
+                      {teamOwners.map((owner) => (
+                        <button
+                          key={owner.id}
+                          onClick={() => setSelectedOwner(owner.id)}
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
+                            selectedOwner === owner.id
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-semibold">{owner.name}</span>
+                            <Badge style={{ backgroundColor: owner.color }}>
+                              {owner.short_name}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <DollarSign className="h-3 w-3" />
+                            <span>₹{owner.budget_remaining.toLocaleString()}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
                 </div>
-              </Card>
-            )}
-          </div>
-
-          {/* Team Owners */}
-          <div>
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Team Owners</h3>
-              <div className="space-y-2">
-                {teamOwners.map((owner) => (
-                  <button
-                    key={owner.id}
-                    onClick={() => setSelectedOwner(owner.id)}
-                    className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                      selectedOwner === owner.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold">{owner.name}</span>
-                      <Badge style={{ backgroundColor: owner.color }}>
-                        {owner.short_name}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <DollarSign className="h-3 w-3" />
-                      <span>₹{owner.budget_remaining.toLocaleString()}</span>
-                    </div>
-                  </button>
-                ))}
               </div>
-            </Card>
-          </div>
-        </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="all-players">
+            <div className="space-y-6">
+              {playersByCategory.map((categoryGroup, idx) => (
+                <Card key={categoryGroup.category.id} className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold">{categoryGroup.category.name}</h3>
+                    <Badge variant="secondary">
+                      {categoryGroup.players.length} players remaining
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categoryGroup.players.map((player) => (
+                      <Card key={player.id} className="p-4">
+                        <h4 className="font-semibold">{player.name}</h4>
+                        <div className="text-sm text-muted-foreground space-y-1 mt-2">
+                          <p className="capitalize">{player.role}</p>
+                          <p>{player.real_teams?.name}</p>
+                          <p>Base: ₹{player.base_price?.toLocaleString()}</p>
+                        </div>
+                      </Card>
+                    ))}
+                    {categoryGroup.players.length === 0 && (
+                      <p className="text-muted-foreground col-span-full text-center py-8">
+                        All players in this category have been auctioned
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="sold">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {soldPlayers.map((player) => (
+                <Card key={player.id} className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold">{player.name}</h4>
+                    <Badge variant="default">Sold</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p className="capitalize">{player.role}</p>
+                    <p>{player.real_teams?.name}</p>
+                    <p className="font-semibold text-primary">
+                      ₹{player.auction_price?.toLocaleString()}
+                    </p>
+                    <p>Owner: {player.team_owners?.name}</p>
+                  </div>
+                </Card>
+              ))}
+              {soldPlayers.length === 0 && (
+                <p className="text-muted-foreground col-span-full text-center py-12">
+                  No players sold yet
+                </p>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="unsold">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {unsoldPlayers.map((player) => (
+                <Card key={player.id} className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold">{player.name}</h4>
+                    <Badge variant="secondary">{player.category || 'N/A'}</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p className="capitalize">{player.role}</p>
+                    <p>{player.real_teams?.name}</p>
+                    <p>Base: ₹{player.base_price?.toLocaleString()}</p>
+                  </div>
+                </Card>
+              ))}
+              {unsoldPlayers.length === 0 && (
+                <p className="text-muted-foreground col-span-full text-center py-12">
+                  All players have been sold
+                </p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
