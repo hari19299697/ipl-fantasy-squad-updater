@@ -2,9 +2,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { Trophy, Users, Zap, List, Settings, Calendar } from "lucide-react";
 import TournamentSelector from "./TournamentSelector";
+import { useTournamentContext } from "@/contexts/TournamentContext";
 
 const Header = () => {
   const location = useLocation();
+  const { selectedTournamentId } = useTournamentContext();
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -64,10 +66,10 @@ const Header = () => {
           </Link>
           
           <Link 
-            to="/players" 
+            to={selectedTournamentId ? `/players/${selectedTournamentId}` : "/tournaments"}
             className={`px-3 py-2 rounded-md text-sm font-medium ${
-              isActive('/players') 
-                ? 'bg-primary/10 text-primary' 
+              location.pathname.startsWith('/players')
+                ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-muted'
             }`}
           >
@@ -78,9 +80,9 @@ const Header = () => {
           </Link>
           
           <Link 
-            to="/update-points" 
+            to={selectedTournamentId ? `/update-points/${selectedTournamentId}` : "/tournaments"}
             className={`px-3 py-2 rounded-md text-sm font-medium ${
-              isActive('/update-points') 
+              location.pathname.startsWith('/update-points') 
                 ? 'bg-primary/10 text-primary' 
                 : 'text-muted-foreground hover:bg-muted'
             }`}
