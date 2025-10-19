@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Gavel, Trophy, DollarSign, Plus, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import PlayerDetailModal from '@/components/PlayerDetailModal';
 
 const Auction = () => {
   const { id: tournamentId } = useParams();
@@ -27,6 +28,7 @@ const Auction = () => {
   const [currentBid, setCurrentBid] = useState(0);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState('');
+  const [selectedPlayer, setSelectedPlayer] = useState<typeof players[0] | null>(null);
 
   // Group players by category
   const playersByCategory = categories.map(category => ({
@@ -431,7 +433,11 @@ const Auction = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categoryGroup.players.map((player) => (
-                      <Card key={player.id} className="p-4">
+                      <Card
+                        key={player.id}
+                        className="p-4 cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => setSelectedPlayer(player)}
+                      >
                         <h4 className="font-semibold">{player.name}</h4>
                         <div className="text-sm text-muted-foreground space-y-1 mt-2">
                           <p className="capitalize">{player.role}</p>
@@ -454,7 +460,11 @@ const Auction = () => {
           <TabsContent value="sold">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {soldPlayers.map((player) => (
-                <Card key={player.id} className="p-4">
+                <Card
+                  key={player.id}
+                  className="p-4 cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => setSelectedPlayer(player)}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold">{player.name}</h4>
                     <Badge variant="default">Sold</Badge>
@@ -480,7 +490,11 @@ const Auction = () => {
           <TabsContent value="unsold">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {unsoldPlayers.map((player) => (
-                <Card key={player.id} className="p-4">
+                <Card
+                  key={player.id}
+                  className="p-4 cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => setSelectedPlayer(player)}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold">{player.name}</h4>
                     <Badge variant="secondary">{player.category || 'N/A'}</Badge>
@@ -500,6 +514,15 @@ const Auction = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {selectedPlayer && (
+          <PlayerDetailModal
+            isOpen={!!selectedPlayer}
+            onClose={() => setSelectedPlayer(null)}
+            player={selectedPlayer}
+            tournamentId={tournamentId || ''}
+          />
+        )}
       </div>
     </div>
   );

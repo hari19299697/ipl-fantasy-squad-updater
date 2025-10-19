@@ -55,11 +55,68 @@ export const useRealTeams = (tournamentId: string | undefined) => {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<RealTeamInsert> }) => {
+      const { data, error } = await supabase
+        .from('real_teams')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['realTeams', tournamentId] });
+      toast({
+        title: "Success",
+        description: "Team updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('real_teams')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['realTeams', tournamentId] });
+      toast({
+        title: "Success",
+        description: "Team deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     realTeams: realTeams || [],
     isLoading,
     error,
     bulkCreateRealTeams: bulkCreateMutation.mutate,
+    updateRealTeam: updateMutation.mutate,
+    deleteRealTeam: deleteMutation.mutate,
     isBulkCreating: bulkCreateMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };

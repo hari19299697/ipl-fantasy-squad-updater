@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/hooks/useCategories";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Download, Upload } from "lucide-react";
+import { Plus, Download, Upload, Edit2, Trash2, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,9 +17,10 @@ interface CategoryManagementModalProps {
 }
 
 const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryManagementModalProps) => {
-  const { categories, bulkCreateCategories } = useCategories(tournamentId);
+  const { categories, bulkCreateCategories, updateCategory, deleteCategory } = useCategories(tournamentId);
   const { toast } = useToast();
   const [newCategory, setNewCategory] = useState({ name: "", description: "", adder: "1000" });
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; description: string; adder: string } | null>(null);
 
   const handleAddCategory = () => {
     if (!newCategory.name) {
@@ -76,6 +77,39 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
     };
     reader.readAsBinaryString(file);
     e.target.value = "";
+  };
+
+  const handleEdit = (category: typeof categories[0]) => {
+    setEditingCategory({
+      id: category.id,
+      name: category.name,
+      description: category.description || "",
+      adder: category.adder?.toString() || "1000",
+    });
+  };
+
+  const handleUpdate = () => {
+    if (!editingCategory || !editingCategory.name) {
+      toast({ title: "Error", description: "Please enter category name", variant: "destructive" });
+      return;
+    }
+
+    updateCategory({
+      id: editingCategory.id,
+      updates: {
+        name: editingCategory.name,
+        description: editingCategory.description || undefined,
+        adder: parseInt(editingCategory.adder) || 1000,
+      },
+    });
+
+    setEditingCategory(null);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this category?")) {
+      deleteCategory(id);
+    }
   };
 
   return (
@@ -142,6 +176,49 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
             </Button>
           </div>
 
+          {/* Edit Category Form */}
+          {editingCategory && (
+            <div className="border rounded-lg p-4 space-y-3 bg-primary/5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Edit Category
+                </h3>
+                <Button variant="ghost" size="icon" onClick={() => setEditingCategory(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label>Category Name *</Label>
+                  <Input
+                    value={editingCategory.name}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={editingCategory.description}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label>Bid Increment (Adder) *</Label>
+                  <Input
+                    type="number"
+                    value={editingCategory.adder}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, adder: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleUpdate} className="w-full">
+                Update Category
+              </Button>
+            </div>
+          )}
+
           {/* Categories List */}
           <div className="border rounded-lg overflow-hidden">
             <Table>
@@ -150,6 +227,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                   <TableHead>Category Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Bid Increment</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,11 +236,29 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                     <TableCell className="font-medium">{cat.name}</TableCell>
                     <TableCell>{cat.description || "—"}</TableCell>
                     <TableCell>₹{cat.adder?.toLocaleString() || '1,000'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(cat)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(cat.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {categories.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       No categories added yet
                     </TableCell>
                   </TableRow>

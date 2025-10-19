@@ -123,34 +123,55 @@ const UpdatePoints = () => {
 
         if (error) throw error;
 
-        // Update player total points
-        for (const player of players) {
-          const { data: matchPoints } = await supabase
-            .from('player_match_points')
-            .select('points')
-            .eq('player_id', player.id);
+        // Batch fetch all player match points
+        const playerIds = players.map(p => p.id);
+        const { data: allMatchPoints } = await supabase
+          .from('player_match_points')
+          .select('player_id, points')
+          .in('player_id', playerIds);
 
-          const totalPoints = matchPoints?.reduce((sum, mp) => sum + mp.points, 0) || 0;
+        // Calculate total points for each player
+        const playerTotals = new Map<string, number>();
+        allMatchPoints?.forEach(mp => {
+          playerTotals.set(mp.player_id, (playerTotals.get(mp.player_id) || 0) + mp.points);
+        });
 
-          await supabase
-            .from('players')
-            .update({ total_points: totalPoints })
-            .eq('id', player.id);
+        // Batch update player total points
+        const playerUpdates = Array.from(playerTotals.entries()).map(([playerId, totalPoints]) => ({
+          id: playerId,
+          total_points: totalPoints,
+        }));
+
+        if (playerUpdates.length > 0) {
+          await Promise.all(
+            playerUpdates.map(update =>
+              supabase
+                .from('players')
+                .update({ total_points: update.total_points })
+                .eq('id', update.id)
+            )
+          );
         }
 
-        // Update team owner total points
-        for (const player of players.filter(p => p.owner_id)) {
-          const { data: teamPlayers } = await supabase
-            .from('players')
-            .select('total_points')
-            .eq('owner_id', player.owner_id);
+        // Calculate team owner totals
+        const ownerTotals = new Map<string, number>();
+        players.forEach(player => {
+          if (player.owner_id) {
+            const playerTotal = playerTotals.get(player.id) || 0;
+            ownerTotals.set(player.owner_id, (ownerTotals.get(player.owner_id) || 0) + playerTotal);
+          }
+        });
 
-          const teamTotal = teamPlayers?.reduce((sum, p) => sum + (p.total_points || 0), 0) || 0;
-
-          await supabase
-            .from('team_owners')
-            .update({ total_points: teamTotal })
-            .eq('id', player.owner_id);
+        // Batch update team owner total points
+        if (ownerTotals.size > 0) {
+          await Promise.all(
+            Array.from(ownerTotals.entries()).map(([ownerId, totalPoints]) =>
+              supabase
+                .from('team_owners')
+                .update({ total_points: totalPoints })
+                .eq('id', ownerId)
+            )
+          );
         }
       }
 

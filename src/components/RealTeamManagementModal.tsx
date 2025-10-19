@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRealTeams } from "@/hooks/useRealTeams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Download, Upload, Trash2 } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Edit2, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,9 +16,10 @@ interface RealTeamManagementModalProps {
 }
 
 const RealTeamManagementModal = ({ isOpen, onClose, tournamentId }: RealTeamManagementModalProps) => {
-  const { realTeams, bulkCreateRealTeams } = useRealTeams(tournamentId);
+  const { realTeams, bulkCreateRealTeams, updateRealTeam, deleteRealTeam } = useRealTeams(tournamentId);
   const { toast } = useToast();
   const [newTeam, setNewTeam] = useState({ name: "", short_name: "" });
+  const [editingTeam, setEditingTeam] = useState<{ id: string; name: string; short_name: string } | null>(null);
 
   const handleAddTeam = () => {
     if (!newTeam.name || !newTeam.short_name) {
@@ -72,6 +73,37 @@ const RealTeamManagementModal = ({ isOpen, onClose, tournamentId }: RealTeamMana
     };
     reader.readAsBinaryString(file);
     e.target.value = "";
+  };
+
+  const handleEdit = (team: typeof realTeams[0]) => {
+    setEditingTeam({
+      id: team.id,
+      name: team.name,
+      short_name: team.short_name,
+    });
+  };
+
+  const handleUpdate = () => {
+    if (!editingTeam || !editingTeam.name || !editingTeam.short_name) {
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    updateRealTeam({
+      id: editingTeam.id,
+      updates: {
+        name: editingTeam.name,
+        short_name: editingTeam.short_name,
+      },
+    });
+
+    setEditingTeam(null);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this team?")) {
+      deleteRealTeam(id);
+    }
   };
 
   return (
@@ -128,6 +160,40 @@ const RealTeamManagementModal = ({ isOpen, onClose, tournamentId }: RealTeamMana
             </Button>
           </div>
 
+          {/* Edit Team Form */}
+          {editingTeam && (
+            <div className="border rounded-lg p-4 space-y-3 bg-primary/5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Edit Real Team
+                </h3>
+                <Button variant="ghost" size="icon" onClick={() => setEditingTeam(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Team Name *</Label>
+                  <Input
+                    value={editingTeam.name}
+                    onChange={(e) => setEditingTeam({ ...editingTeam, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Short Name *</Label>
+                  <Input
+                    value={editingTeam.short_name}
+                    onChange={(e) => setEditingTeam({ ...editingTeam, short_name: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleUpdate} className="w-full">
+                Update Team
+              </Button>
+            </div>
+          )}
+
           {/* Teams List */}
           <div className="border rounded-lg overflow-hidden">
             <Table>
@@ -135,6 +201,7 @@ const RealTeamManagementModal = ({ isOpen, onClose, tournamentId }: RealTeamMana
                 <TableRow>
                   <TableHead>Team Name</TableHead>
                   <TableHead>Short Name</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,11 +209,29 @@ const RealTeamManagementModal = ({ isOpen, onClose, tournamentId }: RealTeamMana
                   <TableRow key={team.id}>
                     <TableCell className="font-medium">{team.name}</TableCell>
                     <TableCell>{team.short_name}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(team)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(team.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {realTeams.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                       No real teams added yet
                     </TableCell>
                   </TableRow>
