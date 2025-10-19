@@ -178,7 +178,14 @@ const TournamentCreate = () => {
       return;
     }
 
-    if (!tournamentId) return;
+    if (!tournamentId) {
+      toast({
+        title: "Error",
+        description: "Tournament ID is missing. Please start over.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Save team owners to database
     bulkCreateTeamOwners(
@@ -191,7 +198,18 @@ const TournamentCreate = () => {
       })),
       {
         onSuccess: () => {
+          toast({
+            title: "Success",
+            description: `${teamOwners.length} team owners saved successfully`,
+          });
           setStep(3);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error saving team owners",
+            description: error.message || "Failed to save team owners",
+            variant: "destructive",
+          });
         },
       }
     );
@@ -209,7 +227,14 @@ const TournamentCreate = () => {
       return;
     }
 
-    if (!tournamentId) return;
+    if (!tournamentId) {
+      toast({
+        title: "Error",
+        description: "Tournament ID is missing. Please start over.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // First, create categories
     if (categories.length > 0) {
@@ -233,7 +258,18 @@ const TournamentCreate = () => {
       })),
       {
         onSuccess: () => {
+          toast({
+            title: "Success!",
+            description: `Tournament setup complete with ${players.length} players`,
+          });
           navigate(`/tournaments/${tournamentId}`);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error saving players",
+            description: error.message || "Failed to save players",
+            variant: "destructive",
+          });
         },
       }
     );

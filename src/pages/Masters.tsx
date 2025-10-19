@@ -57,7 +57,7 @@ const Masters = () => {
     setLoadingCategories(true);
     const { data, error } = await supabase
       .from('categories')
-      .select('*, tournaments(name)')
+      .select('*')
       .order('created_at', { ascending: false });
     
     if (!error && data) {

@@ -56,6 +56,7 @@ const Players = () => {
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Player Name</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Real Team</TableHead>
                 <TableHead>Owner</TableHead>
                 <TableHead>Base Price</TableHead>
@@ -76,6 +77,7 @@ const Players = () => {
                       {player.role}
                     </Badge>
                   </TableCell>
+                  <TableCell>{player.category || 'N/A'}</TableCell>
                   <TableCell>{player.real_teams?.name}</TableCell>
                   <TableCell>
                     {player.team_owners ? (

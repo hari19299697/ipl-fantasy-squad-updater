@@ -164,13 +164,25 @@ const TournamentDetail = () => {
 
           {/* Leaderboard Tab */}
           <TabsContent value="leaderboard" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sortedTeams.map((team, index) => (
-                <div key={team.id} onClick={() => handleTeamClick(team)} className="cursor-pointer">
-                  <TeamCard team={team} rank={index + 1} />
-                </div>
-              ))}
-            </div>
+            {teamOwners.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Teams Yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Add team owners during tournament setup to see the leaderboard
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sortedTeams.map((team, index) => (
+                  <div key={team.id} onClick={() => handleTeamClick(team)} className="cursor-pointer">
+                    <TeamCard team={team} rank={index + 1} />
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Players Tab */}
@@ -181,30 +193,42 @@ const TournamentDetail = () => {
                 <CardDescription>Complete player database for this tournament</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Player Name</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Real Team</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Base Price</TableHead>
-                      <TableHead className="text-right">Total Points</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {players.map((player) => (
-                      <TableRow key={player.id}>
-                        <TableCell className="font-medium">{player.name}</TableCell>
-                        <TableCell className="capitalize">{player.role.replace('_', ' ')}</TableCell>
-                        <TableCell>{player.real_teams?.short_name || 'N/A'}</TableCell>
-                        <TableCell>{player.team_owners?.short_name || 'Unsold'}</TableCell>
-                        <TableCell>₹{(player.base_price || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {players.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Players Yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add players during tournament setup or import them via Excel
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>Player Name</TableHead>
+                       <TableHead>Role</TableHead>
+                       <TableHead>Category</TableHead>
+                       <TableHead>Real Team</TableHead>
+                       <TableHead>Owner</TableHead>
+                       <TableHead>Base Price</TableHead>
+                       <TableHead className="text-right">Total Points</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {players.map((player) => (
+                       <TableRow key={player.id}>
+                         <TableCell className="font-medium">{player.name}</TableCell>
+                         <TableCell className="capitalize">{player.role.replace('_', ' ')}</TableCell>
+                         <TableCell>{player.category || 'N/A'}</TableCell>
+                         <TableCell>{player.real_teams?.short_name || 'N/A'}</TableCell>
+                         <TableCell>{player.team_owners?.short_name || 'Unsold'}</TableCell>
+                         <TableCell>₹{(player.base_price || 0).toLocaleString()}</TableCell>
+                         <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
