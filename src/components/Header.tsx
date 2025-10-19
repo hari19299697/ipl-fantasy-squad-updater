@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Trophy, Users, Zap, List } from "lucide-react";
+import { Trophy, Users, Zap, List, Settings, Calendar } from "lucide-react";
 import TournamentSelector from "./TournamentSelector";
 
 const Header = () => {
@@ -88,6 +88,34 @@ const Header = () => {
             <div className="flex items-center gap-1.5">
               <Zap className="h-4 w-4" />
               <span>Points</span>
+            </div>
+          </Link>
+          
+          <Link 
+            to="/matches" 
+            className={`px-3 py-2 rounded-md text-sm font-medium ${
+              isActive('/matches') 
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4" />
+              <span>Matches</span>
+            </div>
+          </Link>
+          
+          <Link 
+            to="/masters" 
+            className={`px-3 py-2 rounded-md text-sm font-medium ${
+              isActive('/masters') 
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Settings className="h-4 w-4" />
+              <span>Masters</span>
             </div>
           </Link>
         </nav>
