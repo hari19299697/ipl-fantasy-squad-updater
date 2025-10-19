@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings } from "lucide-react";
 import { format } from "date-fns";
 import TeamCard from "@/components/TeamCard";
 import TeamSquadModal from "@/components/TeamSquadModal";
+import TeamManagementModal from "@/components/TeamManagementModal";
+import PlayerManagementModal from "@/components/PlayerManagementModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -28,6 +30,8 @@ const TournamentDetail = () => {
   
   const [selectedTeam, setSelectedTeam] = useState<TeamOwner | null>(null);
   const [showSquadModal, setShowSquadModal] = useState(false);
+  const [showTeamManagement, setShowTeamManagement] = useState(false);
+  const [showPlayerManagement, setShowPlayerManagement] = useState(false);
 
   const isLoading = loadingTournament || loadingPlayers || loadingOwners || loadingMatches;
 
@@ -164,6 +168,12 @@ const TournamentDetail = () => {
 
           {/* Leaderboard Tab */}
           <TabsContent value="leaderboard" className="mt-6">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setShowTeamManagement(true)} variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Teams
+              </Button>
+            </div>
             {teamOwners.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
@@ -172,6 +182,10 @@ const TournamentDetail = () => {
                   <p className="text-muted-foreground mb-4">
                     Add team owners during tournament setup to see the leaderboard
                   </p>
+                  <Button onClick={() => setShowTeamManagement(true)}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Add Teams
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -189,8 +203,16 @@ const TournamentDetail = () => {
           <TabsContent value="players" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>All Players</CardTitle>
-                <CardDescription>Complete player database for this tournament</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>All Players</CardTitle>
+                    <CardDescription>Complete player database for this tournament</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowPlayerManagement(true)} variant="outline">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Players
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {players.length === 0 ? (
@@ -200,6 +222,10 @@ const TournamentDetail = () => {
                     <p className="text-muted-foreground mb-4">
                       Add players during tournament setup or import them via Excel
                     </p>
+                    <Button onClick={() => setShowPlayerManagement(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Add Players
+                    </Button>
                   </div>
                 ) : (
                   <Table>
@@ -283,6 +309,18 @@ const TournamentDetail = () => {
             players={getTeamPlayers(selectedTeam.id)}
           />
         )}
+
+        <TeamManagementModal
+          isOpen={showTeamManagement}
+          onClose={() => setShowTeamManagement(false)}
+          tournamentId={id || ""}
+        />
+
+        <PlayerManagementModal
+          isOpen={showPlayerManagement}
+          onClose={() => setShowPlayerManagement(false)}
+          tournamentId={id || ""}
+        />
       </div>
     </div>
   );
