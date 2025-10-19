@@ -8,6 +8,8 @@ import { TournamentProvider } from "./contexts/TournamentContext";
 import Index from "./pages/Index";
 import Players from "./pages/Players";
 import UpdatePoints from "./pages/UpdatePoints";
+import Tournaments from "./pages/Tournaments";
+import TournamentNew from "./pages/TournamentNew";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +23,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/tournaments" element={<Tournaments />} />
+            <Route path="/tournaments/new" element={<TournamentNew />} />
             <Route path="/players" element={<Players />} />
             <Route path="/update-points" element={<UpdatePoints />} />
             <Route path="*" element={<NotFound />} />

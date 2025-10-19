@@ -1,6 +1,7 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Trophy, Users, Zap } from "lucide-react";
+import { Trophy, Users, Zap, List } from "lucide-react";
+import TournamentSelector from "./TournamentSelector";
 
 const Header = () => {
   const location = useLocation();
@@ -10,25 +11,41 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-10 bg-card border-b shadow-sm">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center space-x-2">
-          <Trophy className="h-6 w-6 text-ipl-gold" />
-          <span className="text-xl font-bold text-ipl-blue">IPL Fantasy</span>
+          <Trophy className="h-6 w-6 text-primary" />
+          <span className="text-xl font-bold text-foreground">Fantasy League</span>
         </Link>
+        
+        <TournamentSelector />
         
         <nav className="flex items-center space-x-1">
           <Link 
             to="/" 
             className={`px-3 py-2 rounded-md text-sm font-medium ${
               isActive('/') 
-                ? 'bg-ipl-light text-ipl-blue' 
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <div className="flex items-center gap-1.5">
               <Trophy className="h-4 w-4" />
-              <span>Dashboard</span>
+              <span>Leaderboard</span>
+            </div>
+          </Link>
+          
+          <Link 
+            to="/tournaments" 
+            className={`px-3 py-2 rounded-md text-sm font-medium ${
+              isActive('/tournaments') || isActive('/tournaments/new')
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <List className="h-4 w-4" />
+              <span>Tournaments</span>
             </div>
           </Link>
           
@@ -36,8 +53,8 @@ const Header = () => {
             to="/players" 
             className={`px-3 py-2 rounded-md text-sm font-medium ${
               isActive('/players') 
-                ? 'bg-ipl-light text-ipl-blue' 
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <div className="flex items-center gap-1.5">
@@ -50,13 +67,13 @@ const Header = () => {
             to="/update-points" 
             className={`px-3 py-2 rounded-md text-sm font-medium ${
               isActive('/update-points') 
-                ? 'bg-ipl-light text-ipl-blue' 
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <div className="flex items-center gap-1.5">
               <Zap className="h-4 w-4" />
-              <span>Update Points</span>
+              <span>Points</span>
             </div>
           </Link>
         </nav>

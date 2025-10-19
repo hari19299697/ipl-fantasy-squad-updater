@@ -4,7 +4,7 @@ import PlayersList from "../components/PlayersList";
 
 const Players = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       <PlayersList />
     </div>

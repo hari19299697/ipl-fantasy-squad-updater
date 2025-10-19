@@ -1,36 +1,27 @@
 
-import { useState, useEffect } from "react";
-import { getInitializedData } from "../data/sampleData";
-import { TeamOwner, Player } from "../types";
+import { useState } from "react";
+import { useTournamentContext } from "@/contexts/TournamentContext";
+import { usePlayers } from "@/hooks/usePlayers";
+import { useTeamOwners } from "@/hooks/useTeamOwners";
 import TeamCard from "./TeamCard";
 import TeamSquadModal from "./TeamSquadModal";
 import ExportButton from "./ExportButton";
+import MigrationPrompt from "./MigrationPrompt";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
 
 const Dashboard = () => {
-  const [teams, setTeams] = useState<TeamOwner[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
+  const { selectedTournamentId } = useTournamentContext();
+  const { teamOwners, isLoading: loadingOwners } = useTeamOwners(selectedTournamentId || undefined);
+  const { players, isLoading: loadingPlayers } = usePlayers(selectedTournamentId || undefined);
   const [selectedTeam, setSelectedTeam] = useState<TeamOwner | null>(null);
   const [showSquadModal, setShowSquadModal] = useState(false);
 
-  useEffect(() => {
-    // Try to get data from localStorage first
-    const storedOwners = localStorage.getItem('fantasyOwners');
-    const storedPlayers = localStorage.getItem('fantasyPlayers');
-    
-    if (storedOwners && storedPlayers) {
-      // Use data from localStorage if available
-      setTeams(JSON.parse(storedOwners));
-      setPlayers(JSON.parse(storedPlayers));
-    } else {
-      // Fall back to initial data if localStorage is empty
-      const { owners, players } = getInitializedData();
-      setTeams(owners);
-      setPlayers(players);
-    }
-  }, []);
-
   // Sort teams by total points (descending)
-  const sortedTeams = [...teams].sort((a, b) => b.totalPoints - a.totalPoints);
+  const sortedTeams = [...teamOwners].sort((a, b) => b.total_points - a.total_points);
 
   const handleTeamClick = (team: TeamOwner) => {
     setSelectedTeam(team);
@@ -38,37 +29,63 @@ const Dashboard = () => {
   };
 
   const getTeamPlayers = (ownerId: string) => {
-    return players.filter(player => player.owner === ownerId);
+    return players.filter(player => player.owner_id === ownerId);
   };
 
+  const isLoading = loadingOwners || loadingPlayers;
+
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-ipl-dark">Fantasy Leaderboard</h1>
-          <p className="text-gray-500">Track points and rankings for all team owners</p>
-        </div>
-        <ExportButton className="ml-auto" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedTeams.map((team, index) => (
-          <div key={team.id} onClick={() => handleTeamClick(team)} className="cursor-pointer">
-            <TeamCard team={team} rank={index + 1} />
+    <>
+      <MigrationPrompt />
+      
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Fantasy Leaderboard</h1>
+            <p className="text-muted-foreground">Track points and rankings for all team owners</p>
           </div>
-        ))}
-      </div>
+          <ExportButton className="ml-auto" />
+        </div>
 
-      {selectedTeam && (
-        <TeamSquadModal
-          isOpen={showSquadModal}
-          onClose={() => setShowSquadModal(false)}
-          ownerId={selectedTeam.id}
-          ownerName={selectedTeam.name}
-          players={getTeamPlayers(selectedTeam.id)}
-        />
-      )}
-    </div>
+        {!selectedTournamentId ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please select a tournament from the dropdown above to view the leaderboard.
+            </AlertDescription>
+          </Alert>
+        ) : isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : sortedTeams.length === 0 ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No team owners found for this tournament. Please add team owners to get started.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedTeams.map((team, index) => (
+              <div key={team.id} onClick={() => handleTeamClick(team)} className="cursor-pointer">
+                <TeamCard team={team} rank={index + 1} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {selectedTeam && (
+          <TeamSquadModal
+            isOpen={showSquadModal}
+            onClose={() => setShowSquadModal(false)}
+            ownerId={selectedTeam.id}
+            ownerName={selectedTeam.name}
+            players={getTeamPlayers(selectedTeam.id)}
+          />
+        )}
+      </div>
+    </>
   );
 };
 
