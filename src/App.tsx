@@ -6,13 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TournamentProvider } from "./contexts/TournamentContext";
 import Landing from "./pages/Landing";
-import Index from "./pages/Index";
 import Tournaments from "./pages/Tournaments";
-import TournamentNew from "./pages/TournamentNew";
 import TournamentCreate from "./pages/TournamentCreate";
 import TournamentDetail from "./pages/TournamentDetail";
 import Masters from "./pages/Masters";
-import MatchManagement from "./pages/MatchManagement";
 import Auction from "./pages/Auction";
 import UpdatePoints from "./pages/UpdatePoints";
 import Players from "./pages/Players";
@@ -29,7 +26,6 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/dashboard" element={<Index />} />
             <Route path="/tournaments" element={<Tournaments />} />
             <Route path="/tournaments/new" element={<TournamentCreate />} />
             <Route path="/tournaments/:id" element={<TournamentDetail />} />
@@ -37,7 +33,6 @@ const App = () => (
             <Route path="/update-points/:id" element={<UpdatePoints />} />
             <Route path="/players/:id" element={<Players />} />
             <Route path="/masters" element={<Masters />} />
-            <Route path="/matches" element={<MatchManagement />} />
             <Route path="/players" element={<Navigate to="/tournaments" replace />} />
             <Route path="/update-points" element={<Navigate to="/tournaments" replace />} />
             <Route path="*" element={<NotFound />} />
