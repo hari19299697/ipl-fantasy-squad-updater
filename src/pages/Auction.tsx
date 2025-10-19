@@ -156,7 +156,7 @@ const Auction = () => {
           <Trophy className="w-16 h-16 mx-auto mb-4 text-primary" />
           <h1 className="text-3xl font-bold mb-4">Auction Complete!</h1>
           <p className="text-muted-foreground mb-8">All players have been auctioned</p>
-          <Button onClick={() => navigate(`/tournament/${tournamentId}`)}>
+          <Button onClick={() => navigate(`/tournaments/${tournamentId}`)}>
             View Tournament
           </Button>
         </div>
@@ -171,7 +171,7 @@ const Auction = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(`/tournament/${tournamentId}`)}
+            onClick={() => navigate(`/tournaments/${tournamentId}`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

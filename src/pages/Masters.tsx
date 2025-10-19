@@ -10,16 +10,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuctionRules } from "@/hooks/useAuctionRules";
 import { useScoringRules } from "@/hooks/useScoringRules";
+import { useTournaments } from "@/hooks/useTournaments";
 import { Plus, Edit, Loader2, Settings } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 const Masters = () => {
   const { auctionRules, isLoading: loadingAuction, createAuctionRule, updateAuctionRule } = useAuctionRules();
   const { scoringRules, isLoading: loadingScoring, createScoringRule, updateScoringRule } = useScoringRules();
+  const { tournaments } = useTournaments();
 
   const [auctionDialogOpen, setAuctionDialogOpen] = useState(false);
   const [scoringDialogOpen, setScoringDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingAuction, setEditingAuction] = useState<any>(null);
   const [editingScoring, setEditingScoring] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   const [auctionForm, setAuctionForm] = useState({
     name: "",
@@ -36,6 +44,30 @@ const Masters = () => {
     name: "",
     description: "",
     rules: {} as any,
+  });
+
+  const [categoryForm, setCategoryForm] = useState({
+    tournament_id: "",
+    name: "",
+    description: "",
+  });
+
+  // Load categories
+  const loadCategories = async () => {
+    setLoadingCategories(true);
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*, tournaments(name)')
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      setCategories(data);
+    }
+    setLoadingCategories(false);
+  };
+
+  useState(() => {
+    loadCategories();
   });
 
   const handleCreateAuction = () => {
@@ -124,6 +156,43 @@ const Masters = () => {
     setScoringDialogOpen(true);
   };
 
+  const handleCreateCategory = async () => {
+    const { error } = await supabase
+      .from('categories')
+      .insert([categoryForm]);
+    
+    if (!error) {
+      setCategoryDialogOpen(false);
+      setCategoryForm({ tournament_id: "", name: "", description: "" });
+      loadCategories();
+    }
+  };
+
+  const handleUpdateCategory = async () => {
+    if (editingCategory) {
+      const { error } = await supabase
+        .from('categories')
+        .update(categoryForm)
+        .eq('id', editingCategory.id);
+      
+      if (!error) {
+        setCategoryDialogOpen(false);
+        setEditingCategory(null);
+        loadCategories();
+      }
+    }
+  };
+
+  const openEditCategory = (category: any) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      tournament_id: category.tournament_id,
+      name: category.name,
+      description: category.description || "",
+    });
+    setCategoryDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -135,14 +204,15 @@ const Masters = () => {
             <h1 className="text-3xl font-bold text-foreground">Master Templates</h1>
           </div>
           <p className="text-muted-foreground">
-            Manage auction rules and scoring system templates
+            Manage auction rules, scoring systems, and categories
           </p>
         </div>
 
         <Tabs defaultValue="auction" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="auction">Auction Rules</TabsTrigger>
             <TabsTrigger value="scoring">Scoring Rules</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
           </TabsList>
 
           {/* Auction Rules Tab */}
@@ -344,6 +414,118 @@ const Masters = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditScoring(rule)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Categories Tab */}
+          <TabsContent value="categories" className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Player Categories</CardTitle>
+                    <CardDescription>Manage player categories for tournaments</CardDescription>
+                  </div>
+                  <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={() => { setEditingCategory(null); }}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Category
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingCategory ? "Edit Category" : "Create Category"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Add a new player category for a tournament
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Tournament</Label>
+                          <Select 
+                            value={categoryForm.tournament_id} 
+                            onValueChange={(value) => setCategoryForm({ ...categoryForm, tournament_id: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select tournament" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tournaments.map((tournament) => (
+                                <SelectItem key={tournament.id} value={tournament.id}>
+                                  {tournament.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Category Name</Label>
+                          <Input
+                            value={categoryForm.name}
+                            onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                            placeholder="e.g., Marquee, Premium, Base"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Textarea
+                            value={categoryForm.description}
+                            onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                            placeholder="Optional description..."
+                          />
+                        </div>
+                        <Button 
+                          onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
+                          className="w-full"
+                        >
+                          {editingCategory ? "Update Category" : "Create Category"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingCategories ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tournament</TableHead>
+                        <TableHead>Category Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {categories.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">
+                            {category.tournaments?.name || "N/A"}
+                          </TableCell>
+                          <TableCell>{category.name}</TableCell>
+                          <TableCell>{category.description || "No description"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditCategory(category)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>

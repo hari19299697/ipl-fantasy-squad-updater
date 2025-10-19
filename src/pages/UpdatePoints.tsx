@@ -165,7 +165,7 @@ const UpdatePoints = () => {
         description: "Points updated successfully",
       });
 
-      navigate(`/tournament/${tournamentId}`);
+      navigate(`/tournaments/${tournamentId}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -194,7 +194,7 @@ const UpdatePoints = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(`/tournament/${tournamentId}`)}
+            onClick={() => navigate(`/tournaments/${tournamentId}`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

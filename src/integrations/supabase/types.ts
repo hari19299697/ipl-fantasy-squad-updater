@@ -126,6 +126,30 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          tournament_id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string | null
@@ -230,6 +254,7 @@ export type Database = {
         Row: {
           auction_price: number | null
           base_price: number | null
+          category: string | null
           created_at: string | null
           id: string
           name: string
@@ -242,6 +267,7 @@ export type Database = {
         Insert: {
           auction_price?: number | null
           base_price?: number | null
+          category?: string | null
           created_at?: string | null
           id?: string
           name: string
@@ -254,6 +280,7 @@ export type Database = {
         Update: {
           auction_price?: number | null
           base_price?: number | null
+          category?: string | null
           created_at?: string | null
           id?: string
           name?: string

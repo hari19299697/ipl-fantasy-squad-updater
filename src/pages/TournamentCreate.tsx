@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTournaments } from "@/hooks/useTournaments";
 import { useTeamOwners } from "@/hooks/useTeamOwners";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useRealTeams } from "@/hooks/useRealTeams";
+import { useCategories } from "@/hooks/useCategories";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from 'xlsx';
 
 interface TeamOwnerForm {
   name: string;
@@ -24,6 +26,7 @@ interface PlayerForm {
   name: string;
   role: string;
   realTeam: string;
+  category: string;
   basePrice: number;
 }
 
@@ -31,8 +34,13 @@ const TournamentCreate = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { createTournament, isCreating } = useTournaments();
+  const { bulkCreateTeamOwners } = useTeamOwners(undefined);
+  const { bulkCreatePlayers } = usePlayers(undefined);
+  const { bulkCreateCategories } = useCategories(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [tournamentId, setTournamentId] = useState<string | null>(null);
+  const { categories: masterCategories } = useCategories(tournamentId || undefined);
 
   // Step 1: Tournament Details
   const [tournamentData, setTournamentData] = useState({
@@ -51,10 +59,11 @@ const TournamentCreate = () => {
 
   // Step 3: Players
   const [players, setPlayers] = useState<PlayerForm[]>([
-    { name: "", role: "batsman", realTeam: "", basePrice: 100000 }
+    { name: "", role: "batsman", realTeam: "", category: "", basePrice: 100000 }
   ]);
 
   const [realTeams, setRealTeams] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
 
   const handleTournamentChange = (field: string, value: string) => {
     setTournamentData(prev => ({ ...prev, [field]: value }));
@@ -100,7 +109,51 @@ const TournamentCreate = () => {
   };
 
   const addPlayer = () => {
-    setPlayers([...players, { name: "", role: "batsman", realTeam: "", basePrice: 100000 }]);
+    setPlayers([...players, { name: "", role: "batsman", realTeam: "", category: "", basePrice: 100000 }]);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        const importedPlayers: PlayerForm[] = jsonData.map((row) => ({
+          name: row['Player Name'] || row['name'] || '',
+          role: row['Player Role'] || row['role'] || 'batsman',
+          realTeam: row['Real Team'] || row['realTeam'] || '',
+          category: row['Category'] || row['category'] || '',
+          basePrice: parseInt(row['Base Price'] || row['basePrice'] || '100000'),
+        }));
+
+        // Extract unique categories and real teams
+        const uniqueCategories = [...new Set(importedPlayers.map(p => p.category).filter(Boolean))];
+        const uniqueRealTeams = [...new Set(importedPlayers.map(p => p.realTeam).filter(Boolean))];
+        
+        setCategories(uniqueCategories);
+        setRealTeams(uniqueRealTeams);
+        setPlayers(importedPlayers);
+
+        toast({
+          title: "Success",
+          description: `Imported ${importedPlayers.length} players`,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to parse Excel file",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const removePlayer = (index: number) => {
@@ -125,13 +178,23 @@ const TournamentCreate = () => {
       return;
     }
 
+    if (!tournamentId) return;
+
     // Save team owners to database
-    // This would be implemented with actual API calls
-    toast({
-      title: "Success",
-      description: `${teamOwners.length} team owners saved`,
-    });
-    setStep(3);
+    bulkCreateTeamOwners(
+      teamOwners.map(owner => ({
+        tournament_id: tournamentId,
+        name: owner.name,
+        short_name: owner.shortName,
+        color: owner.color,
+        budget_remaining: owner.budget,
+      })),
+      {
+        onSuccess: () => {
+          setStep(3);
+        },
+      }
+    );
   };
 
   const handleSavePlayers = async () => {
@@ -146,15 +209,34 @@ const TournamentCreate = () => {
       return;
     }
 
-    // Save players to database
-    toast({
-      title: "Success",
-      description: `${players.length} players saved`,
-    });
-    
-    if (tournamentId) {
-      navigate(`/tournaments/${tournamentId}`);
+    if (!tournamentId) return;
+
+    // First, create categories
+    if (categories.length > 0) {
+      bulkCreateCategories(
+        categories.map(cat => ({
+          tournament_id: tournamentId,
+          name: cat,
+        }))
+      );
     }
+
+    // Then save players to database
+    bulkCreatePlayers(
+      players.map(player => ({
+        tournament_id: tournamentId,
+        name: player.name,
+        role: player.role,
+        real_team_id: null, // We'll need to match this later
+        category: player.category,
+        base_price: player.basePrice,
+      })),
+      {
+        onSuccess: () => {
+          navigate(`/tournaments/${tournamentId}`);
+        },
+      }
+    );
   };
 
   return (
@@ -293,12 +375,12 @@ const TournamentCreate = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <Input
-                        placeholder="Full Name"
+                        placeholder="Team Owner Name"
                         value={owner.name}
                         onChange={(e) => updateTeamOwner(index, 'name', e.target.value)}
                       />
                       <Input
-                        placeholder="Short Name (3-4 chars)"
+                        placeholder="Team Name"
                         value={owner.shortName}
                         onChange={(e) => updateTeamOwner(index, 'shortName', e.target.value)}
                         maxLength={4}
@@ -314,12 +396,15 @@ const TournamentCreate = () => {
                           className="w-20 h-10"
                         />
                       </div>
-                      <Input
-                        type="number"
-                        placeholder="Budget"
-                        value={owner.budget}
-                        onChange={(e) => updateTeamOwner(index, 'budget', parseInt(e.target.value))}
-                      />
+                      <div className="space-y-1">
+                        <Label className="text-sm">Purse Wallet</Label>
+                        <Input
+                          type="number"
+                          placeholder="1000000"
+                          value={owner.budget}
+                          onChange={(e) => updateTeamOwner(index, 'budget', parseInt(e.target.value))}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -354,6 +439,24 @@ const TournamentCreate = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import from Excel
+                  </Button>
+                </div>
                 {players.map((player, index) => (
                   <div key={index} className="p-4 border rounded-lg space-y-3">
                     <div className="flex items-center justify-between mb-2">
@@ -389,12 +492,27 @@ const TournamentCreate = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <Input
                         placeholder="Real Team"
                         value={player.realTeam}
                         onChange={(e) => updatePlayer(index, 'realTeam', e.target.value)}
                       />
+                      <Select 
+                        value={player.category} 
+                        onValueChange={(value) => updatePlayer(index, 'category', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {masterCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Input
                         type="number"
                         placeholder="Base Price"

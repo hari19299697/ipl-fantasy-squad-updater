@@ -39,7 +39,7 @@ const Players = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(`/tournament/${tournamentId}`)}
+            onClick={() => navigate(`/tournaments/${tournamentId}`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
