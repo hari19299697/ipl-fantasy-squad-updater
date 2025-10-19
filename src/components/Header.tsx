@@ -31,6 +31,20 @@ const Header = () => {
           >
             <div className="flex items-center gap-1.5">
               <Trophy className="h-4 w-4" />
+              <span>Home</span>
+            </div>
+          </Link>
+          
+          <Link 
+            to="/dashboard" 
+            className={`px-3 py-2 rounded-md text-sm font-medium ${
+              isActive('/dashboard') 
+                ? 'bg-primary/10 text-primary' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Trophy className="h-4 w-4" />
               <span>Leaderboard</span>
             </div>
           </Link>
@@ -38,7 +52,7 @@ const Header = () => {
           <Link 
             to="/tournaments" 
             className={`px-3 py-2 rounded-md text-sm font-medium ${
-              isActive('/tournaments') || isActive('/tournaments/new')
+              isActive('/tournaments') || location.pathname.startsWith('/tournaments')
                 ? 'bg-primary/10 text-primary' 
                 : 'text-muted-foreground hover:bg-muted'
             }`}

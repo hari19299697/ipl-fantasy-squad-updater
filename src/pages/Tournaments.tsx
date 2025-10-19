@@ -38,10 +38,15 @@ const Tournaments = () => {
             <h1 className="text-3xl font-bold text-foreground">Tournaments</h1>
             <p className="text-muted-foreground">Manage all your fantasy tournaments</p>
           </div>
-          <Button onClick={() => navigate("/tournaments/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Tournament
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Back to Home
+            </Button>
+            <Button onClick={() => navigate("/tournaments/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Tournament
+            </Button>
+          </div>
         </div>
 
         {/* Filter Tabs */}

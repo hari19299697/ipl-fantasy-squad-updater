@@ -5,11 +5,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TournamentProvider } from "./contexts/TournamentContext";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Players from "./pages/Players";
 import UpdatePoints from "./pages/UpdatePoints";
 import Tournaments from "./pages/Tournaments";
 import TournamentNew from "./pages/TournamentNew";
+import TournamentCreate from "./pages/TournamentCreate";
+import TournamentDetail from "./pages/TournamentDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,9 +25,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/dashboard" element={<Index />} />
             <Route path="/tournaments" element={<Tournaments />} />
-            <Route path="/tournaments/new" element={<TournamentNew />} />
+            <Route path="/tournaments/new" element={<TournamentCreate />} />
+            <Route path="/tournaments/:id" element={<TournamentDetail />} />
             <Route path="/players" element={<Players />} />
             <Route path="/update-points" element={<UpdatePoints />} />
             <Route path="*" element={<NotFound />} />
