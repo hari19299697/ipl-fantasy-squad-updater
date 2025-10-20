@@ -32,17 +32,17 @@ const Tournaments = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Tournaments</h1>
-            <p className="text-muted-foreground">Manage all your fantasy tournaments</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tournaments</h1>
+            <p className="text-sm text-muted-foreground">Manage all your fantasy tournaments</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/")}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => navigate("/")} className="w-full sm:w-auto">
               Back to Home
             </Button>
-            <Button onClick={() => navigate("/tournaments/new")}>
+            <Button onClick={() => navigate("/tournaments/new")} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Create Tournament
             </Button>
@@ -50,13 +50,14 @@ const Tournaments = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-2 px-2">
           {["all", "draft", "auction", "active", "completed"].map((status) => (
             <Button
               key={status}
               variant={filter === status ? "default" : "outline"}
               size="sm"
               onClick={() => setFilter(status)}
+              className="shrink-0 text-xs sm:text-sm"
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Button>

@@ -209,9 +209,9 @@ const UpdatePoints = () => {
   const selectedMatchData = matches.find(m => m.id === selectedMatch);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-2 sm:p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-8">
           <Button
             variant="ghost"
             size="icon"
@@ -220,12 +220,12 @@ const UpdatePoints = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Update Player Points</h1>
-            <p className="text-muted-foreground">{tournament.name}</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Update Player Points</h1>
+            <p className="text-sm text-muted-foreground">{tournament.name}</p>
           </div>
         </div>
 
-        <Card className="p-6 mb-6">
+        <Card className="p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="space-y-4">
             <div>
               <Label>Select Match</Label>
@@ -248,31 +248,31 @@ const UpdatePoints = () => {
 
         {selectedMatch && selectedMatchData && (
           <>
-            <Card className="p-6 mb-6 bg-primary/5">
-              <h3 className="font-semibold mb-2">
+            <Card className="p-4 sm:p-6 mb-4 sm:mb-6 bg-primary/5">
+              <h3 className="font-semibold mb-2 text-sm sm:text-base">
                 Match {selectedMatchData.match_number}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {selectedMatchData.team1.name} vs {selectedMatchData.team2.name}
               </p>
               {selectedMatchData.venue && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Venue: {selectedMatchData.venue}
                 </p>
               )}
             </Card>
 
-            <Card className="p-6">
-              <div className="space-y-4">
+            <Card className="p-4 sm:p-6">
+              <div className="space-y-3 sm:space-y-4">
                 {players.map((player) => (
-                  <div key={player.id} className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <p className="font-medium">{player.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                  <div key={player.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{player.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         {player.real_teams?.name} • {player.team_owners?.name || 'Unsold'}
                       </p>
                     </div>
-                    <div className="w-32">
+                    <div className="w-full sm:w-32">
                       <Input
                         type="number"
                         placeholder="Points"
@@ -283,14 +283,15 @@ const UpdatePoints = () => {
                             [player.id]: e.target.value,
                           })
                         }
+                        className="text-sm"
                       />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Button onClick={handleSave} disabled={saving}>
+              <div className="mt-4 sm:mt-6 flex justify-end">
+                <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? 'Saving...' : 'Save Points'}
                 </Button>

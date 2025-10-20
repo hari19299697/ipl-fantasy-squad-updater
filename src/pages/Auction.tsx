@@ -244,9 +244,9 @@ const Auction = () => {
   const allPlayersAuctioned = unsoldPlayers.length === 0;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-2 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-8">
           <Button
             variant="ghost"
             size="icon"
@@ -255,20 +255,20 @@ const Auction = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Gavel className="h-8 w-8" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
+              <Gavel className="h-6 w-6 sm:h-8 sm:w-8" />
               Live Auction
             </h1>
-            <p className="text-muted-foreground">{tournament.name}</p>
+            <p className="text-sm text-muted-foreground">{tournament.name}</p>
           </div>
         </div>
 
-        <Tabs defaultValue="live" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="live">Live Auction</TabsTrigger>
-            <TabsTrigger value="all-players">All Players</TabsTrigger>
-            <TabsTrigger value="sold">Sold ({soldPlayers.length})</TabsTrigger>
-            <TabsTrigger value="unsold">Unsold ({unsoldPlayers.length})</TabsTrigger>
+        <Tabs defaultValue="live" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="live" className="text-xs sm:text-sm">Live Auction</TabsTrigger>
+            <TabsTrigger value="all-players" className="text-xs sm:text-sm">All Players</TabsTrigger>
+            <TabsTrigger value="sold" className="text-xs sm:text-sm">Sold ({soldPlayers.length})</TabsTrigger>
+            <TabsTrigger value="unsold" className="text-xs sm:text-sm">Unsold ({unsoldPlayers.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="live">
@@ -282,9 +282,9 @@ const Auction = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Current Player */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 order-2 lg:order-1">
                   {currentPlayer ? (
                     <Card className="p-6">
                       <div className="text-center mb-6">
@@ -306,36 +306,36 @@ const Auction = () => {
                         </div>
                       </div>
 
-                      <div className="bg-primary/10 rounded-lg p-6 mb-6 text-center">
-                        <p className="text-sm text-muted-foreground mb-2">Current Bid</p>
-                        <p className="text-5xl font-bold text-primary">
+                      <div className="bg-primary/10 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 text-center">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">Current Bid</p>
+                        <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">
                           ₹{currentBid.toLocaleString()}
                         </p>
                         {selectedOwner && (
-                          <p className="text-sm mt-2">
+                          <p className="text-xs sm:text-sm mt-2">
                             by {teamOwners.find(o => o.id === selectedOwner)?.name}
                           </p>
                         )}
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="flex gap-2">
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             onClick={handleIncrementBid}
                             variant="outline"
-                            className="flex items-center gap-2"
+                            className="flex items-center justify-center gap-2 w-full sm:w-auto"
                           >
                             <Plus className="h-4 w-4" />
-                            Add ₹{currentCategory.category.adder?.toLocaleString() || '1,000'}
+                            <span className="text-xs sm:text-sm">Add ₹{currentCategory.category.adder?.toLocaleString() || '1,000'}</span>
                           </Button>
                           <Input
                             type="number"
-                            placeholder="Or enter custom bid"
+                            placeholder="Custom bid"
                             value={bidAmount}
                             onChange={(e) => setBidAmount(e.target.value)}
                             className="flex-1"
                           />
-                          <Button onClick={handleBid} disabled={!selectedOwner || !bidAmount}>
+                          <Button onClick={handleBid} disabled={!selectedOwner || !bidAmount} className="w-full sm:w-auto">
                             Place Bid
                           </Button>
                         </div>
@@ -388,27 +388,27 @@ const Auction = () => {
                 </div>
 
                 {/* Team Owners */}
-                <div>
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Team Owners</h3>
-                    <div className="space-y-2">
+                <div className="order-1 lg:order-2">
+                  <Card className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Team Owners</h3>
+                    <div className="space-y-2 max-h-[300px] sm:max-h-none overflow-y-auto">
                       {teamOwners.map((owner) => (
                         <button
                           key={owner.id}
                           onClick={() => setSelectedOwner(owner.id)}
-                          className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
+                          className={`w-full text-left p-2 sm:p-3 rounded-lg border-2 transition-colors ${
                             selectedOwner === owner.id
                               ? 'border-primary bg-primary/10'
                               : 'border-border hover:border-primary/50'
                           }`}
                         >
                           <div className="flex justify-between items-start mb-1">
-                            <span className="font-semibold">{owner.name}</span>
-                            <Badge style={{ backgroundColor: owner.color }}>
+                            <span className="font-semibold text-sm sm:text-base">{owner.name}</span>
+                            <Badge style={{ backgroundColor: owner.color }} className="text-xs">
                               {owner.short_name}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                             <DollarSign className="h-3 w-3" />
                             <span>₹{owner.budget_remaining.toLocaleString()}</span>
                           </div>

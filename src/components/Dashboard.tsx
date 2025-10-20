@@ -38,13 +38,13 @@ const Dashboard = () => {
     <>
       <MigrationPrompt />
       
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6 flex justify-between items-center">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Fantasy Leaderboard</h1>
-            <p className="text-muted-foreground">Track points and rankings for all team owners</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Fantasy Leaderboard</h1>
+            <p className="text-sm text-muted-foreground">Track points and rankings for all team owners</p>
           </div>
-          <ExportButton className="ml-auto" />
+          <ExportButton className="w-full sm:w-auto" />
         </div>
 
         {!selectedTournamentId ? (
