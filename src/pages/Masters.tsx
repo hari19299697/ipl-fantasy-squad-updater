@@ -11,13 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useAuctionRules } from "@/hooks/useAuctionRules";
 import { useScoringRules } from "@/hooks/useScoringRules";
 import { useTournaments } from "@/hooks/useTournaments";
-import { Plus, Edit, Loader2, Settings } from "lucide-react";
+import { Plus, Edit, Loader2, Settings, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
 const Masters = () => {
-  const { auctionRules, isLoading: loadingAuction, createAuctionRule, updateAuctionRule } = useAuctionRules();
-  const { scoringRules, isLoading: loadingScoring, createScoringRule, updateScoringRule } = useScoringRules();
+  const { auctionRules, isLoading: loadingAuction, createAuctionRule, updateAuctionRule, deleteAuctionRule } = useAuctionRules();
+  const { scoringRules, isLoading: loadingScoring, createScoringRule, updateScoringRule, deleteScoringRule } = useScoringRules();
   const { tournaments } = useTournaments();
 
   const [auctionDialogOpen, setAuctionDialogOpen] = useState(false);
@@ -51,6 +52,9 @@ const Masters = () => {
     name: "",
     description: "",
   });
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'auction' | 'scoring' | 'category' } | null>(null);
 
   // Load categories
   const loadCategories = async () => {
@@ -193,6 +197,33 @@ const Masters = () => {
     setCategoryDialogOpen(true);
   };
 
+  const handleDeleteClick = (id: string, type: 'auction' | 'scoring' | 'category') => {
+    setItemToDelete({ id, type });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    if (itemToDelete.type === 'auction') {
+      deleteAuctionRule(itemToDelete.id);
+    } else if (itemToDelete.type === 'scoring') {
+      deleteScoringRule(itemToDelete.id);
+    } else if (itemToDelete.type === 'category') {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', itemToDelete.id);
+      
+      if (!error) {
+        loadCategories();
+      }
+    }
+
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -320,13 +351,22 @@ const Masters = () => {
                           <TableCell>{rule.currency} {rule.min_bid.toLocaleString()}</TableCell>
                           <TableCell>{rule.max_players_per_team}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditAuction(rule)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditAuction(rule)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClick(rule.id, 'auction')}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -410,13 +450,22 @@ const Masters = () => {
                           <TableCell className="font-medium">{rule.name}</TableCell>
                           <TableCell>{rule.description || "No description"}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditScoring(rule)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditScoring(rule)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClick(rule.id, 'scoring')}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -522,13 +571,22 @@ const Masters = () => {
                           <TableCell>{category.name}</TableCell>
                           <TableCell>{category.description || "No description"}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditCategory(category)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditCategory(category)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClick(category.id, 'category')}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -539,6 +597,23 @@ const Masters = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete this {itemToDelete?.type} template.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

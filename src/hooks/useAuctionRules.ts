@@ -82,13 +82,41 @@ export const useAuctionRules = () => {
     },
   });
 
+  // Delete auction rule
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('auction_rules')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auctionRules'] });
+      toast({
+        title: "Success",
+        description: "Auction rule deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     auctionRules: auctionRules || [],
     isLoading,
     error,
     createAuctionRule: createMutation.mutate,
     updateAuctionRule: updateMutation.mutate,
+    deleteAuctionRule: deleteMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };

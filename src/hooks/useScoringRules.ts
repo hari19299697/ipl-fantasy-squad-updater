@@ -82,13 +82,41 @@ export const useScoringRules = () => {
     },
   });
 
+  // Delete scoring rule
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('scoring_rules')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scoringRules'] });
+      toast({
+        title: "Success",
+        description: "Scoring rule deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     scoringRules: scoringRules || [],
     isLoading,
     error,
     createScoringRule: createMutation.mutate,
     updateScoringRule: updateMutation.mutate,
+    deleteScoringRule: deleteMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };
