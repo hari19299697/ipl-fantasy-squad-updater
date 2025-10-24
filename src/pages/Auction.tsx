@@ -302,7 +302,35 @@ const Auction = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <>
+                {/* Category Toggle Buttons */}
+                <Card className="p-4 mb-4">
+                  <h3 className="text-sm font-semibold mb-3">Select Category</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {playersByCategory.map((categoryGroup, idx) => (
+                      <Button
+                        key={categoryGroup.category.id}
+                        onClick={() => {
+                          setCurrentCategoryIndex(idx);
+                          setCurrentPlayerIndex(0);
+                        }}
+                        variant={currentCategoryIndex === idx ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 min-w-[120px]"
+                      >
+                        {categoryGroup.category.name}
+                        <Badge 
+                          variant="secondary" 
+                          className="ml-2"
+                        >
+                          {categoryGroup.players.length}
+                        </Badge>
+                      </Button>
+                    ))}
+                  </div>
+                </Card>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Current Player */}
                 <div className="lg:col-span-2 order-2 lg:order-1">
                   {currentPlayer ? (
@@ -476,6 +504,7 @@ const Auction = () => {
                   </Card>
                 </div>
               </div>
+              </>
             )}
           </TabsContent>
 
