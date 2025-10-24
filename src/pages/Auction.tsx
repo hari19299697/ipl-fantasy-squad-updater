@@ -10,7 +10,17 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Gavel, Trophy, DollarSign, Plus, ChevronRight } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ArrowLeft, Gavel, Trophy, DollarSign, Plus, ChevronRight, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import PlayerDetailModal from '@/components/PlayerDetailModal';
@@ -32,6 +42,8 @@ const Auction = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<typeof players[0] | null>(null);
   const [shuffledPlayers, setShuffledPlayers] = useState<any[]>([]);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [initialBudget, setInitialBudget] = useState<number>(0);
 
   // Shuffle function
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -42,6 +54,27 @@ const Auction = () => {
     }
     return shuffled;
   };
+
+  // Fetch initial budget from tournament auction rules
+  useEffect(() => {
+    const fetchInitialBudget = async () => {
+      if (!tournamentId) return;
+      
+      const { data, error } = await supabase
+        .from('tournament_auction_rules')
+        .select('auction_rule_id, auction_rules(initial_budget), custom_config')
+        .eq('tournament_id', tournamentId)
+        .single();
+      
+      if (data) {
+        const customConfig = data.custom_config as any;
+        const budget = customConfig?.initial_budget || data.auction_rules?.initial_budget || 2000000;
+        setInitialBudget(budget);
+      }
+    };
+    
+    fetchInitialBudget();
+  }, [tournamentId]);
 
   // Initialize shuffled players when players or categories change
   useEffect(() => {
@@ -248,6 +281,60 @@ const Auction = () => {
     }
   };
 
+  const handleResetAuction = async () => {
+    if (!tournamentId) return;
+    
+    try {
+      // Reset all players - remove owner and auction price
+      const { error: playersError } = await supabase
+        .from('players')
+        .update({ owner_id: null, auction_price: null })
+        .eq('tournament_id', tournamentId);
+      
+      if (playersError) throw playersError;
+
+      // Reset all team owners budgets to initial budget
+      const { error: ownersError } = await supabase
+        .from('team_owners')
+        .update({ budget_remaining: initialBudget })
+        .eq('tournament_id', tournamentId);
+      
+      if (ownersError) throw ownersError;
+
+      // Mark all auction logs as revoked
+      const { error: logsError } = await supabase
+        .from('auction_logs')
+        .update({ revoked: true })
+        .eq('tournament_id', tournamentId);
+      
+      if (logsError) throw logsError;
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['players', tournamentId] });
+      queryClient.invalidateQueries({ queryKey: ['teamOwners', tournamentId] });
+      
+      // Reset state
+      setCurrentCategoryIndex(0);
+      setCurrentPlayerIndex(0);
+      setCurrentBid(0);
+      setSelectedOwner(null);
+      setBidAmount('');
+      
+      toast({
+        title: "Auction Reset Complete!",
+        description: "All auction data has been reset. You can start fresh.",
+      });
+      
+      setResetDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset auction",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (tournamentLoading || playersLoading || ownersLoading || categoriesLoading) {
     return <div className="p-8">Loading...</div>;
   }
@@ -277,21 +364,32 @@ const Auction = () => {
   return (
     <div className="min-h-screen bg-background p-2 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(`/tournaments/${tournamentId}`)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <Gavel className="h-6 w-6 sm:h-8 sm:w-8" />
-              Live Auction
-            </h1>
-            <p className="text-sm text-muted-foreground">{tournament.name}</p>
+        <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(`/tournaments/${tournamentId}`)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
+                <Gavel className="h-6 w-6 sm:h-8 sm:w-8" />
+                Live Auction
+              </h1>
+              <p className="text-sm text-muted-foreground">{tournament.name}</p>
+            </div>
           </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setResetDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="h-4 w-4" />
+            <span className="hidden sm:inline">Reset Auction</span>
+          </Button>
         </div>
 
         <Tabs defaultValue="live" className="space-y-4 sm:space-y-6">
@@ -622,6 +720,35 @@ const Auction = () => {
           />
         )}
       </div>
+
+      {/* Reset Auction Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Auction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all auction data including:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>All players will be marked as unsold</li>
+                <li>All team owners' budgets will be restored to ₹{initialBudget.toLocaleString()}</li>
+                <li>All auction history will be marked as revoked</li>
+              </ul>
+              <p className="mt-4 font-semibold text-destructive">
+                This action cannot be undone. Are you sure you want to continue?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetAuction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Reset Auction
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
