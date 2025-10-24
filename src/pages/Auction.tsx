@@ -12,12 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Gavel, Trophy, DollarSign, Plus, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import PlayerDetailModal from '@/components/PlayerDetailModal';
 
 const Auction = () => {
   const { id: tournamentId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: tournament, isLoading: tournamentLoading } = useTournament(tournamentId);
   const { players, isLoading: playersLoading, updatePlayer } = usePlayers(tournamentId);
   const { teamOwners, isLoading: ownersLoading } = useTeamOwners(tournamentId);
@@ -157,6 +159,9 @@ const Auction = () => {
       .from('team_owners')
       .update({ budget_remaining: owner.budget_remaining - currentBid })
       .eq('id', selectedOwner);
+
+    // Invalidate team owners query to refresh budget immediately
+    queryClient.invalidateQueries({ queryKey: ['teamOwners', tournamentId] });
 
     // Log sold action
     await supabase.from('auction_logs').insert({
