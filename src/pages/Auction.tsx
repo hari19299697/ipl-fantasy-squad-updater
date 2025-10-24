@@ -29,11 +29,31 @@ const Auction = () => {
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<typeof players[0] | null>(null);
+  const [shuffledPlayers, setShuffledPlayers] = useState<any[]>([]);
 
-  // Group players by category
+  // Shuffle function
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Initialize shuffled players when players or categories change
+  useEffect(() => {
+    if (players.length > 0 && categories.length > 0) {
+      const unsoldPlayers = players.filter(p => !p.owner_id);
+      const shuffled = shuffleArray(unsoldPlayers);
+      setShuffledPlayers(shuffled);
+    }
+  }, [players.length, categories.length]);
+
+  // Group shuffled players by category
   const playersByCategory = categories.map(category => ({
     category,
-    players: players.filter(p => p.category === category.name && !p.owner_id)
+    players: shuffledPlayers.filter(p => p.category === category.name)
   }));
 
   const soldPlayers = players.filter(p => p.owner_id);
