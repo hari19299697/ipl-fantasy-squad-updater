@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTeamOwners } from "@/hooks/useTeamOwners";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Download, Upload, Trash2, Edit2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
@@ -23,6 +25,7 @@ const TeamManagementModal = ({ isOpen, onClose, tournamentId }: TeamManagementMo
   const { teamOwners, createTeamOwner, updateTeamOwner, deleteTeamOwner, bulkCreateTeamOwners } = useTeamOwners(tournamentId);
   const { toast } = useToast();
   const [editingTeam, setEditingTeam] = useState<TeamOwner | null>(null);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [newTeam, setNewTeam] = useState({ name: "", short_name: "", budget_remaining: "", color: "#000000" });
 
   const handleAddTeam = () => {
@@ -102,6 +105,29 @@ const TeamManagementModal = ({ isOpen, onClose, tournamentId }: TeamManagementMo
     e.target.value = "";
   };
 
+  const handleDeleteAll = async () => {
+    try {
+      const { error } = await supabase
+        .from('team_owners')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `All ${teamOwners.length} teams have been deleted`,
+      });
+      setDeleteAllDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -158,7 +184,7 @@ const TeamManagementModal = ({ isOpen, onClose, tournamentId }: TeamManagementMo
             </Button>
           </div>
 
-          {/* Import/Export */}
+          {/* Import/Export/Delete All */}
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport} className="flex-1">
               <Download className="h-4 w-4 mr-2" />
@@ -170,6 +196,14 @@ const TeamManagementModal = ({ isOpen, onClose, tournamentId }: TeamManagementMo
                 Import from Excel
                 <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
               </label>
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => setDeleteAllDialogOpen(true)}
+              disabled={teamOwners.length === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete All
             </Button>
           </div>
 
@@ -255,6 +289,23 @@ const TeamManagementModal = ({ isOpen, onClose, tournamentId }: TeamManagementMo
             </Table>
           </div>
         </div>
+
+        <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete All Teams?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete all {teamOwners.length} teams from this tournament. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete All {teamOwners.length} Teams
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

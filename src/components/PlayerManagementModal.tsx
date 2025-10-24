@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePlayers } from "@/hooks/usePlayers";
 import { useRealTeams } from "@/hooks/useRealTeams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Download, Upload, Trash2, Edit2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Player = Database['public']['Tables']['players']['Row'] & {
@@ -30,6 +32,7 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
   const { realTeams } = useRealTeams(tournamentId);
   const { toast } = useToast();
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [newPlayer, setNewPlayer] = useState({
     name: "",
     role: "",
@@ -128,6 +131,29 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
     e.target.value = "";
   };
 
+  const handleDeleteAll = async () => {
+    try {
+      const { error } = await supabase
+        .from('players')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `All ${players.length} players have been deleted`,
+      });
+      setDeleteAllDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
@@ -206,7 +232,7 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
             </Button>
           </div>
 
-          {/* Import/Export */}
+          {/* Import/Export/Delete All */}
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport} className="flex-1">
               <Download className="h-4 w-4 mr-2" />
@@ -218,6 +244,14 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
                 Import from Excel
                 <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
               </label>
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => setDeleteAllDialogOpen(true)}
+              disabled={players.length === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete All
             </Button>
           </div>
 
@@ -331,6 +365,23 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
             </Table>
           </div>
         </div>
+
+        <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete All Players?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete all {players.length} players from this tournament. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete All {players.length} Players
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
