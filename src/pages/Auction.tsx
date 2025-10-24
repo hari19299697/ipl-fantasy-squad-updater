@@ -388,7 +388,7 @@ const Auction = () => {
                 </div>
 
                 {/* Team Owners */}
-                <div className="order-1 lg:order-2">
+                <div className="order-1 lg:order-2 space-y-4">
                   <Card className="p-4 sm:p-6">
                     <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Team Owners</h3>
                     <div className="space-y-2 max-h-[300px] sm:max-h-none overflow-y-auto">
@@ -414,6 +414,44 @@ const Auction = () => {
                           </div>
                         </button>
                       ))}
+                    </div>
+                  </Card>
+
+                  {/* Teams Leaderboard */}
+                  <Card className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                      <Trophy className="h-4 w-4" />
+                      Live Standings
+                    </h3>
+                    <div className="space-y-2">
+                      {[...teamOwners]
+                        .sort((a, b) => (b.total_points || 0) - (a.total_points || 0))
+                        .map((owner, index) => (
+                          <div
+                            key={owner.id}
+                            className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
+                          >
+                            <div 
+                              className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0"
+                              style={{ 
+                                backgroundColor: `${owner.color}20`, 
+                                color: owner.color 
+                              }}
+                            >
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs sm:text-sm font-medium truncate">{owner.short_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {players.filter(p => p.owner_id === owner.id).length} players
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold">{owner.total_points || 0}</p>
+                              <p className="text-xs text-muted-foreground">pts</p>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </Card>
                 </div>

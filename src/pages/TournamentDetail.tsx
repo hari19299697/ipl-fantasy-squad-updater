@@ -169,8 +169,9 @@ const TournamentDetail = () => {
 
         {/* Tabs for different views */}
         <Tabs defaultValue="leaderboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-5 h-auto">
             <TabsTrigger value="leaderboard" className="text-xs sm:text-sm py-2">Leaderboard</TabsTrigger>
+            <TabsTrigger value="teams" className="text-xs sm:text-sm py-2">Teams</TabsTrigger>
             <TabsTrigger value="players" className="text-xs sm:text-sm py-2">Players</TabsTrigger>
             <TabsTrigger value="matches" className="text-xs sm:text-sm py-2">Matches</TabsTrigger>
             <TabsTrigger value="masters" className="text-xs sm:text-sm py-2">Masters</TabsTrigger>
@@ -207,6 +208,84 @@ const TournamentDetail = () => {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Teams Tab */}
+          <TabsContent value="teams" className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>All Teams</CardTitle>
+                    <CardDescription>Complete team database for this tournament</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowTeamManagement(true)} variant="outline">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Teams
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {teamOwners.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Teams Yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add team owners during tournament setup
+                    </p>
+                    <Button onClick={() => setShowTeamManagement(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Add Teams
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="inline-block min-w-full align-middle">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs sm:text-sm">Rank</TableHead>
+                            <TableHead className="text-xs sm:text-sm">Team Name</TableHead>
+                            <TableHead className="text-xs sm:text-sm">Short Name</TableHead>
+                            <TableHead className="text-xs sm:text-sm hidden md:table-cell">Budget Remaining</TableHead>
+                            <TableHead className="text-right text-xs sm:text-sm">Total Points</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedTeams.map((team, index) => (
+                            <TableRow 
+                              key={team.id} 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleTeamClick(team)}
+                            >
+                              <TableCell className="text-xs sm:text-sm">
+                                <div 
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium"
+                                  style={{ 
+                                    backgroundColor: `${team.color}20`, 
+                                    color: team.color 
+                                  }}
+                                >
+                                  {index + 1}
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium text-xs sm:text-sm">{team.name}</TableCell>
+                              <TableCell className="text-xs sm:text-sm">
+                                <Badge style={{ backgroundColor: team.color }}>
+                                  {team.short_name}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm hidden md:table-cell">₹{team.budget_remaining.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-semibold text-xs sm:text-sm">{team.total_points || 0}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Players Tab */}
