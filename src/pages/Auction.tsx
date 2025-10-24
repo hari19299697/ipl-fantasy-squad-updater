@@ -172,11 +172,23 @@ const Auction = () => {
       description: `${currentPlayer.name} sold to ${owner.name} for ₹${currentBid.toLocaleString()}`,
     });
 
+    // Check remaining unsold players in current category
+    const remainingUnsoldInCategory = currentCategoryPlayers.filter(
+      p => p.id !== currentPlayer.id && !p.owner_id
+    );
+
     // Move to next player in current category
     if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
       setCurrentPlayerIndex(prev => prev + 1);
+    } else if (remainingUnsoldInCategory.length > 0) {
+      // Loop back to start of unsold players in same category
+      setCurrentPlayerIndex(0);
+      toast({
+        title: "Continuing with Unsold Players",
+        description: `${remainingUnsoldInCategory.length} unsold players remaining in ${currentCategory.category.name}`,
+      });
     } else {
-      // Current category complete, check if there are more categories
+      // All players in category are now sold, move to next category
       if (currentCategoryIndex + 1 < playersByCategory.length) {
         toast({
           title: "Category Complete!",
@@ -207,22 +219,16 @@ const Auction = () => {
       description: `${currentPlayer.name} remains unsold`,
     });
 
-    // Move to next player in current category
+    // Move to next player in current category (unsold players stay in the list)
     if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
       setCurrentPlayerIndex(prev => prev + 1);
     } else {
-      // Current category complete
-      if (currentCategoryIndex + 1 < playersByCategory.length) {
-        toast({
-          title: "Category Complete!",
-          description: `${currentCategory.category.name} auction complete. Click "Next Category" to continue.`,
-        });
-      } else {
-        toast({
-          title: "Auction Complete!",
-          description: "All categories have been auctioned",
-        });
-      }
+      // Loop back to start to show unsold players again
+      setCurrentPlayerIndex(0);
+      toast({
+        title: "Continuing with Unsold Players",
+        description: `Showing unsold players in ${currentCategory.category.name} category`,
+      });
     }
   };
 
