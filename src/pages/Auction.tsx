@@ -44,6 +44,46 @@ const Auction = () => {
   const [shuffledPlayers, setShuffledPlayers] = useState<any[]>([]);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [initialBudget, setInitialBudget] = useState<number>(0);
+  const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState<number>(25);
+
+  // Calculate minimum base price of unsold players
+  const minBasePrice = React.useMemo(() => {
+    const unsoldWithPrice = players.filter(p => !p.owner_id && p.base_price && p.base_price > 0);
+    if (unsoldWithPrice.length === 0) return 0;
+    return Math.min(...unsoldWithPrice.map(p => p.base_price!));
+  }, [players]);
+
+  // Calculate max bid for each team owner
+  const getMaxBidForOwner = React.useCallback((ownerId: string) => {
+    const owner = teamOwners.find(o => o.id === ownerId);
+    if (!owner) return 0;
+    
+    const playersBought = players.filter(p => p.owner_id === ownerId).length;
+    const remainingSlots = maxPlayersPerTeam - playersBought;
+    
+    if (remainingSlots <= 0) return 0;
+    
+    // Max Bid = Purse Left − (Remaining Slots − 1) × Min Base Price
+    const maxBid = owner.budget_remaining - (remainingSlots - 1) * minBasePrice;
+    
+    return Math.max(0, maxBid);
+  }, [teamOwners, players, maxPlayersPerTeam, minBasePrice]);
+
+  // Check if owner can still participate in auction
+  const canOwnerBid = React.useCallback((ownerId: string) => {
+    const owner = teamOwners.find(o => o.id === ownerId);
+    if (!owner) return false;
+    
+    const playersBought = players.filter(p => p.owner_id === ownerId).length;
+    const remainingSlots = maxPlayersPerTeam - playersBought;
+    
+    if (remainingSlots <= 0) return false;
+    
+    // Minimum Required = Remaining Slots × Min Base Price
+    const minRequired = remainingSlots * minBasePrice;
+    
+    return owner.budget_remaining >= minRequired;
+  }, [teamOwners, players, maxPlayersPerTeam, minBasePrice]);
 
   // Shuffle function
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -55,25 +95,27 @@ const Auction = () => {
     return shuffled;
   };
 
-  // Fetch initial budget from tournament auction rules
+  // Fetch auction rules (initial budget and max players per team)
   useEffect(() => {
-    const fetchInitialBudget = async () => {
+    const fetchAuctionRules = async () => {
       if (!tournamentId) return;
       
       const { data, error } = await supabase
         .from('tournament_auction_rules')
-        .select('auction_rule_id, auction_rules(initial_budget), custom_config')
+        .select('auction_rule_id, auction_rules(initial_budget, max_players_per_team), custom_config')
         .eq('tournament_id', tournamentId)
         .single();
       
       if (data) {
         const customConfig = data.custom_config as any;
         const budget = customConfig?.initial_budget || data.auction_rules?.initial_budget || 2000000;
+        const maxPlayers = customConfig?.max_players_per_team || data.auction_rules?.max_players_per_team || 25;
         setInitialBudget(budget);
+        setMaxPlayersPerTeam(maxPlayers);
       }
     };
     
-    fetchInitialBudget();
+    fetchAuctionRules();
   }, [tournamentId]);
 
   // Initialize shuffled players when players or categories change
@@ -143,6 +185,27 @@ const Auction = () => {
       toast({
         title: "Insufficient Budget",
         description: `${owner.name} doesn't have enough budget`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if bid exceeds max allowed bid
+    const maxBid = getMaxBidForOwner(selectedOwner);
+    if (bid > maxBid) {
+      toast({
+        title: "Bid Exceeds Limit",
+        description: `${owner.name} can only bid up to ₹${maxBid.toLocaleString()} to complete squad`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if owner can still bid
+    if (!canOwnerBid(selectedOwner)) {
+      toast({
+        title: "Cannot Bid",
+        description: `${owner.name} doesn't have enough budget to complete squad requirements`,
         variant: "destructive",
       });
       return;
@@ -549,28 +612,57 @@ const Auction = () => {
                   <Card className="p-4 sm:p-6">
                     <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Team Owners</h3>
                     <div className="space-y-2 max-h-[300px] sm:max-h-none overflow-y-auto">
-                      {teamOwners.map((owner) => (
-                        <button
-                          key={owner.id}
-                          onClick={() => setSelectedOwner(owner.id)}
-                          className={`w-full text-left p-2 sm:p-3 rounded-lg border-2 transition-colors ${
-                            selectedOwner === owner.id
-                              ? 'border-primary bg-primary/10'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-semibold text-sm sm:text-base">{owner.name}</span>
-                            <Badge style={{ backgroundColor: owner.color }} className="text-xs">
-                              {owner.short_name}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
-                            <DollarSign className="h-3 w-3" />
-                            <span>₹{owner.budget_remaining.toLocaleString()}</span>
-                          </div>
-                        </button>
-                      ))}
+                      {teamOwners.map((owner) => {
+                        const playersBought = players.filter(p => p.owner_id === owner.id).length;
+                        const remainingSlots = maxPlayersPerTeam - playersBought;
+                        const maxBid = getMaxBidForOwner(owner.id);
+                        const ownerCanBid = canOwnerBid(owner.id);
+                        const squadFull = remainingSlots <= 0;
+                        
+                        return (
+                          <button
+                            key={owner.id}
+                            onClick={() => !squadFull && ownerCanBid && setSelectedOwner(owner.id)}
+                            disabled={squadFull || !ownerCanBid}
+                            className={`w-full text-left p-2 sm:p-3 rounded-lg border-2 transition-colors ${
+                              squadFull || !ownerCanBid
+                                ? 'border-muted bg-muted/50 opacity-60 cursor-not-allowed'
+                                : selectedOwner === owner.id
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-semibold text-sm sm:text-base">{owner.name}</span>
+                              <div className="flex items-center gap-1">
+                                {squadFull && (
+                                  <Badge variant="secondary" className="text-xs">Full</Badge>
+                                )}
+                                <Badge style={{ backgroundColor: owner.color }} className="text-xs">
+                                  {owner.short_name}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" />
+                                <span>₹{owner.budget_remaining.toLocaleString()}</span>
+                              </div>
+                              <span>{playersBought}/{maxPlayersPerTeam} players</span>
+                            </div>
+                            {!squadFull && ownerCanBid && (
+                              <div className="mt-1 text-xs text-primary font-medium">
+                                Max bid: ₹{maxBid.toLocaleString()}
+                              </div>
+                            )}
+                            {!squadFull && !ownerCanBid && (
+                              <div className="mt-1 text-xs text-destructive font-medium">
+                                Insufficient budget for squad
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </Card>
 
