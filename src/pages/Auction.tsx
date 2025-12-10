@@ -190,7 +190,7 @@ const Auction = () => {
   const handleBid = async () => {
     if (!selectedOwner || !bidAmount || !currentPlayer) return;
 
-    const bid = parseInt(bidAmount);
+    const bid = parseFloat(bidAmount);
     const owner = teamOwners.find(o => o.id === selectedOwner);
     
     if (!owner) return;
@@ -707,6 +707,7 @@ const Auction = () => {
                                   <div className="flex-1 flex gap-2">
                                     <Input
                                       type="number"
+                                      step="any"
                                       placeholder="Custom bid amount"
                                       value={bidAmount}
                                       onChange={(e) => setBidAmount(e.target.value)}
