@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -45,6 +45,11 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 100% 40%;
     --sidebar-ring: 45 89% 57%;
+
+    /* Auction specific colors */
+    --auction-glow: 45 89% 57%;
+    --auction-success: 142 76% 36%;
+    --auction-card-shine: 0 0% 100%;
   }
 
   .dark {
@@ -75,6 +80,11 @@
     --border: 216 34% 19%;
     --input: 216 34% 19%;
     --ring: 224 76% 48%;
+
+    /* Auction specific colors - dark mode */
+    --auction-glow: 45 89% 57%;
+    --auction-success: 142 76% 36%;
+    --auction-card-shine: 0 0% 100%;
   }
 }
 
@@ -88,10 +98,16 @@
   }
 }
 
+/* Card gradients */
 .card-gradient {
   background: linear-gradient(135deg, rgba(0, 76, 163, 0.05) 0%, rgba(243, 193, 48, 0.07) 100%);
 }
 
+.auction-card-gradient {
+  background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.3) 100%);
+}
+
+/* Shimmer animation */
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
@@ -101,4 +117,174 @@
 @keyframes shimmer {
   0% { background-position: -100% 0; }
   100% { background-position: 100% 0; }
+}
+
+/* Auction specific animations */
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--auction-glow) / 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 40px hsl(var(--auction-glow) / 0.6);
+  }
+}
+
+@keyframes bid-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes number-tick {
+  0% { transform: translateY(100%); opacity: 0; }
+  20% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+
+/* Utility classes for auction */
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-bid-pop {
+  animation: bid-pop 0.3s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Player card shine effect */
+.player-card-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.player-card-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--auction-card-shine) / 0.1),
+    transparent
+  );
+  transform: skewX(-25deg);
+}
+
+.player-card-shine:hover::before {
+  animation: shine 0.75s ease-out;
+}
+
+/* Team owner button glow */
+.team-owner-selected {
+  box-shadow: 
+    0 0 0 2px hsl(var(--primary)),
+    0 0 20px hsl(var(--primary) / 0.3),
+    inset 0 0 20px hsl(var(--primary) / 0.05);
+}
+
+/* Current bid display */
+.bid-display {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--secondary) / 0.1) 100%);
+  border: 1px solid hsl(var(--primary) / 0.2);
+}
+
+.bid-display-active {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(var(--secondary) / 0.15) 100%);
+  border: 2px solid hsl(var(--primary) / 0.4);
+}
+
+/* Glassmorphism effects */
+.glass-card {
+  background: hsl(var(--card) / 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.glass-dark {
+  background: hsl(var(--background) / 0.9);
+  backdrop-filter: blur(12px);
+}
+
+/* Action button enhancements */
+.btn-sold {
+  background: linear-gradient(135deg, hsl(var(--auction-success)) 0%, hsl(142 70% 30%) 100%);
+  box-shadow: 0 4px 15px hsl(var(--auction-success) / 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-sold:hover {
+  box-shadow: 0 6px 25px hsl(var(--auction-success) / 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-sold:active {
+  transform: translateY(0);
+}
+
+/* Category badge styles */
+.category-badge {
+  background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--secondary) / 0.8) 100%);
+  box-shadow: 0 2px 8px hsl(var(--secondary) / 0.3);
+}
+
+/* Leaderboard entry */
+.leaderboard-entry {
+  transition: all 0.2s ease;
+}
+
+.leaderboard-entry:hover {
+  transform: translateX(4px);
+  background: hsl(var(--muted));
+}
+
+/* Stats card */
+.stats-card {
+  background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.5) 100%);
+}
+
+/* Scrollbar styling */
+.auction-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.auction-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.auction-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+.auction-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
 }
