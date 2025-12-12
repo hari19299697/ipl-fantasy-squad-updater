@@ -176,7 +176,7 @@ const SoldCelebration: React.FC<SoldCelebrationProps> = ({
               <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-2xl shadow-lg">
                 <Star className="w-6 h-6" />
                 <span className="text-3xl md:text-4xl font-black">
-                  ₹{soldPrice.toLocaleString()}
+                  ₹{soldPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </span>
                 <Star className="w-6 h-6" />
               </div>
