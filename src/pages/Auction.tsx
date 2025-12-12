@@ -41,6 +41,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import PlayerDetailModal from '@/components/PlayerDetailModal';
 import SoldCelebration from '@/components/SoldCelebration';
 
+// Format number with Indian locale and support decimals
+const formatCurrency = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '0';
+  return value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+};
+
 const Auction = () => {
   const { id: tournamentId } = useParams();
   const navigate = useNavigate();
@@ -88,13 +94,17 @@ const Auction = () => {
     
     if (remainingSlots <= 0) return 0;
     
+    // If no unsold players with price, allow full budget
+    if (minBasePrice === 0) return owner.budget_remaining;
+    
+    // Max bid = budget - (remaining slots after this purchase - 1) * min base price
     const maxBid = owner.budget_remaining - (remainingSlots - 1) * minBasePrice;
     
     return Math.max(0, maxBid);
   }, [teamOwners, players, maxPlayersPerTeam, minBasePrice]);
 
   // Check if owner can still participate in auction
-  const canOwnerBid = useCallback((ownerId: string) => {
+  const canOwnerBid = useCallback((ownerId: string, playerBasePrice?: number) => {
     const owner = teamOwners.find(o => o.id === ownerId);
     if (!owner) return false;
     
@@ -103,9 +113,13 @@ const Auction = () => {
     
     if (remainingSlots <= 0) return false;
     
-    const minRequired = remainingSlots * minBasePrice;
+    // If no minimum base price calculated, just check if budget > 0
+    if (minBasePrice === 0) return owner.budget_remaining > 0;
     
-    return owner.budget_remaining >= minRequired;
+    // Check if budget can cover at least the current player's base price
+    const currentPrice = playerBasePrice || minBasePrice;
+    
+    return owner.budget_remaining >= currentPrice;
   }, [teamOwners, players, maxPlayersPerTeam, minBasePrice]);
 
   // Shuffle function
@@ -183,7 +197,7 @@ const Auction = () => {
 
     toast({
       title: "Bid Incremented",
-      description: `New bid: ₹${newBid.toLocaleString()}`,
+      description: `New bid: ₹${formatCurrency(newBid)}`,
     });
   };
 
@@ -217,13 +231,13 @@ const Auction = () => {
     if (bid > maxBid) {
       toast({
         title: "Bid Exceeds Limit",
-        description: `${owner.name} can only bid up to ₹${maxBid.toLocaleString()} to complete squad`,
+        description: `${owner.name} can only bid up to ₹${formatCurrency(maxBid)} to complete squad`,
         variant: "destructive",
       });
       return;
     }
 
-    if (!canOwnerBid(selectedOwner)) {
+    if (!canOwnerBid(selectedOwner, currentPlayer.base_price || undefined)) {
       toast({
         title: "Cannot Bid",
         description: `${owner.name} doesn't have enough budget to complete squad requirements`,
@@ -244,7 +258,7 @@ const Auction = () => {
 
     toast({
       title: "Bid Placed",
-      description: `${owner.name} bid ₹${bid.toLocaleString()}`,
+      description: `${owner.name} bid ₹${formatCurrency(bid)}`,
     });
   };
 
@@ -652,7 +666,7 @@ const Auction = () => {
                                 <span>•</span>
                                 <span>{currentPlayer.real_teams?.name || 'N/A'}</span>
                                 <span>•</span>
-                                <span className="font-semibold">Base: ₹{currentPlayer.base_price?.toLocaleString()}</span>
+                                <span className="font-semibold">Base: ₹{formatCurrency(currentPlayer.base_price)}</span>
                               </div>
                             </div>
 
@@ -673,7 +687,7 @@ const Auction = () => {
                                   initial={{ scale: 1.1 }}
                                   animate={{ scale: 1 }}
                                 >
-                                  ₹{currentBid.toLocaleString()}
+                                  ₹{formatCurrency(currentBid)}
                                 </motion.p>
                                 {selectedOwner && (
                                   <motion.div 
@@ -702,7 +716,7 @@ const Auction = () => {
                                     className="flex-1 h-12 text-base font-semibold"
                                   >
                                     <Plus className="h-5 w-5 mr-2" />
-                                    +₹{currentCategory?.category.adder?.toLocaleString() || '1,000'}
+                                    +₹{formatCurrency(currentCategory?.category.adder) || '1,000'}
                                   </Button>
                                   <div className="flex-1 flex gap-2">
                                     <Input
@@ -790,7 +804,7 @@ const Auction = () => {
                             const playersBought = players.filter(p => p.owner_id === owner.id).length;
                             const remainingSlots = maxPlayersPerTeam - playersBought;
                             const maxBid = getMaxBidForOwner(owner.id);
-                            const ownerCanBid = canOwnerBid(owner.id);
+                            const ownerCanBid = canOwnerBid(owner.id, currentPlayer?.base_price || undefined);
                             const squadFull = remainingSlots <= 0;
                             const isSelected = selectedOwner === owner.id;
                             
@@ -823,14 +837,14 @@ const Auction = () => {
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span className="font-medium text-foreground">
-                                    ₹{owner.budget_remaining.toLocaleString()}
+                                    ₹{formatCurrency(owner.budget_remaining)}
                                   </span>
                                   <span>{playersBought}/{maxPlayersPerTeam}</span>
                                 </div>
                                 {!squadFull && ownerCanBid && (
                                   <div className="mt-2 text-xs font-medium text-primary flex items-center gap-1">
                                     <TrendingUp className="h-3 w-3" />
-                                    Max: ₹{maxBid.toLocaleString()}
+                                    Max: ₹{formatCurrency(maxBid)}
                                   </div>
                                 )}
                                 {!squadFull && !ownerCanBid && (
@@ -916,7 +930,7 @@ const Auction = () => {
                           <div className="text-sm text-muted-foreground space-y-1">
                             <p className="capitalize">{player.role}</p>
                             <p>{player.real_teams?.name}</p>
-                            <p className="font-medium text-primary">₹{player.base_price?.toLocaleString()}</p>
+                            <p className="font-medium text-primary">₹{formatCurrency(player.base_price)}</p>
                           </div>
                         </Card>
                       </motion.div>
@@ -953,7 +967,7 @@ const Auction = () => {
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p className="capitalize">{player.role}</p>
                       <p className="font-bold text-lg text-primary">
-                        ₹{player.auction_price?.toLocaleString()}
+                        ₹{formatCurrency(player.auction_price)}
                       </p>
                       <div className="flex items-center gap-2 pt-1">
                         <div 
@@ -994,7 +1008,7 @@ const Auction = () => {
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p className="capitalize">{player.role}</p>
                       <p>{player.real_teams?.name}</p>
-                      <p className="font-medium">Base: ₹{player.base_price?.toLocaleString()}</p>
+                      <p className="font-medium">Base: ₹{formatCurrency(player.base_price)}</p>
                     </div>
                   </Card>
                 </motion.div>
@@ -1030,7 +1044,7 @@ const Auction = () => {
               This will reset all auction data:
               <ul className="list-disc list-inside mt-3 space-y-1.5 text-sm">
                 <li>All players will be marked as unsold</li>
-                <li>Team budgets restored to ₹{initialBudget.toLocaleString()}</li>
+                <li>Team budgets restored to ₹{formatCurrency(initialBudget)}</li>
                 <li>Auction history will be marked as revoked</li>
               </ul>
               <p className="mt-4 font-semibold text-destructive">
