@@ -22,6 +22,8 @@ interface Match {
   match_number: number;
   match_date: string;
   venue: string;
+  team1_id: string;
+  team2_id: string;
   team1: { name: string };
   team2: { name: string };
 }
@@ -264,7 +266,12 @@ const UpdatePoints = () => {
 
             <Card className="p-4 sm:p-6">
               <div className="space-y-3 sm:space-y-4">
-                {players.map((player) => (
+                {players
+                  .filter((player) => 
+                    player.real_team_id === selectedMatchData.team1_id || 
+                    player.real_team_id === selectedMatchData.team2_id
+                  )
+                  .map((player) => (
                   <div key={player.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm sm:text-base truncate">{player.name}</p>
