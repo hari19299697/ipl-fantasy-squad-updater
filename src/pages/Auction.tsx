@@ -202,17 +202,39 @@ const Auction = () => {
   };
 
   const handleBid = async () => {
-    if (!selectedOwner || !bidAmount || !currentPlayer) return;
+    if (!selectedOwner || !currentPlayer) return;
+    
+    // If no custom bid entered, use current bid (for placing bid at current level)
+    const bidValue = bidAmount.trim();
+    if (!bidValue) {
+      toast({
+        title: "Enter Bid Amount",
+        description: "Please enter a bid amount or use the increment button",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const bid = parseFloat(bidAmount);
+    const bid = parseFloat(bidValue);
+    
+    if (isNaN(bid)) {
+      toast({
+        title: "Invalid Bid",
+        description: "Please enter a valid number",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const owner = teamOwners.find(o => o.id === selectedOwner);
     
     if (!owner) return;
 
-    if (bid <= currentBid) {
+    // Allow bid equal to current bid if it's higher than base price, or if it's a new bid
+    if (bid < currentBid) {
       toast({
         title: "Invalid Bid",
-        description: "Bid must be higher than current bid",
+        description: "Bid must be equal to or higher than current bid",
         variant: "destructive",
       });
       return;
@@ -729,7 +751,7 @@ const Auction = () => {
                                     />
                                     <Button 
                                       onClick={handleBid} 
-                                      disabled={!selectedOwner || !bidAmount}
+                                      disabled={!selectedOwner || !bidAmount || bidAmount.trim() === ''}
                                       size="lg"
                                       className="h-12 px-6"
                                     >
