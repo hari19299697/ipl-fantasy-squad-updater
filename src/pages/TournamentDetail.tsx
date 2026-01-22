@@ -4,14 +4,19 @@ import { useTournament, useTournaments } from "@/hooks/useTournaments";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useTeamOwners } from "@/hooks/useTeamOwners";
 import { useMatches } from "@/hooks/useMatches";
+import { useAuctionRules } from "@/hooks/useAuctionRules";
+import { useTournamentAuctionRules } from "@/hooks/useTournamentAuctionRules";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2, Check, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import TeamCard from "@/components/TeamCard";
 import TeamSquadModal from "@/components/TeamSquadModal";
 import TeamManagementModal from "@/components/TeamManagementModal";
@@ -32,6 +37,8 @@ const TournamentDetail = () => {
   const { players, isLoading: loadingPlayers } = usePlayers(id);
   const { teamOwners, isLoading: loadingOwners } = useTeamOwners(id);
   const { matches, isLoading: loadingMatches } = useMatches(id);
+  const { auctionRules } = useAuctionRules();
+  const { tournamentAuctionRule, applyTemplate, removeTemplate, isApplying } = useTournamentAuctionRules(id);
   
   const [selectedTeam, setSelectedTeam] = useState<TeamOwner | null>(null);
   const [showSquadModal, setShowSquadModal] = useState(false);
@@ -41,6 +48,8 @@ const TournamentDetail = () => {
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [showMatchManagement, setShowMatchManagement] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAuctionRuleDialog, setShowAuctionRuleDialog] = useState(false);
+  const [selectedAuctionRuleId, setSelectedAuctionRuleId] = useState<string>("");
 
   const handleDeleteTournament = () => {
     if (id) {
@@ -51,6 +60,16 @@ const TournamentDetail = () => {
       });
     }
   };
+
+  const handleApplyAuctionTemplate = () => {
+    if (id && selectedAuctionRuleId) {
+      applyTemplate({ tournamentId: id, auctionRuleId: selectedAuctionRuleId });
+      setShowAuctionRuleDialog(false);
+      setSelectedAuctionRuleId("");
+    }
+  };
+
+  const appliedAuctionRule = tournamentAuctionRule?.auction_rules;
 
   const isLoading = loadingTournament || loadingPlayers || loadingOwners || loadingMatches;
 
@@ -427,32 +446,105 @@ const TournamentDetail = () => {
 
           {/* Masters Tab */}
           <TabsContent value="masters" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {/* Auction Rules Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Real Teams</CardTitle>
-                  <CardDescription>Manage actual cricket teams</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Gavel className="h-5 w-5" />
+                        Auction Rules
+                      </CardTitle>
+                      <CardDescription>
+                        Configure auction rules for this tournament
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => setShowAuctionRuleDialog(true)} variant="outline">
+                      <FileText className="h-4 w-4 mr-2" />
+                      {appliedAuctionRule ? "Change Template" : "Apply Template"}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={() => setShowRealTeamManagement(true)} className="w-full">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Real Teams
-                  </Button>
+                  {appliedAuctionRule ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-primary" />
+                        <span className="font-medium">Template Applied: {appliedAuctionRule.name}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Initial Budget</p>
+                          <p className="font-medium">{appliedAuctionRule.currency} {appliedAuctionRule.initial_budget.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Min Bid</p>
+                          <p className="font-medium">{appliedAuctionRule.currency} {appliedAuctionRule.min_bid.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Bid Increment</p>
+                          <p className="font-medium">{appliedAuctionRule.currency} {appliedAuctionRule.increment_value.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Players per Team</p>
+                          <p className="font-medium">{appliedAuctionRule.min_players_per_team || 11} - {appliedAuctionRule.max_players_per_team}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Budget Safety</p>
+                          <Badge variant={appliedAuctionRule.budget_safety_enabled ? "default" : "secondary"}>
+                            {appliedAuctionRule.budget_safety_enabled ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Unsold Player Rule</p>
+                          <p className="font-medium capitalize">{(appliedAuctionRule.unsold_player_rule || 'skip').replace(/_/g, ' ')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-semibold mb-2">No Auction Rules Applied</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Apply an auction template to configure bidding rules for this tournament
+                      </p>
+                      <Button onClick={() => setShowAuctionRuleDialog(true)}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Apply Template
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Categories</CardTitle>
-                  <CardDescription>Manage player categories</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => setShowCategoryManagement(true)} className="w-full">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Categories
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Real Teams</CardTitle>
+                    <CardDescription>Manage actual cricket teams</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button onClick={() => setShowRealTeamManagement(true)} className="w-full">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Real Teams
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Categories</CardTitle>
+                    <CardDescription>Manage player categories</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button onClick={() => setShowCategoryManagement(true)} className="w-full">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Categories
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -517,6 +609,75 @@ const TournamentDetail = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Auction Rule Template Dialog */}
+        <Dialog open={showAuctionRuleDialog} onOpenChange={setShowAuctionRuleDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Apply Auction Template</DialogTitle>
+              <DialogDescription>
+                Select an auction rule template to apply to this tournament
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Template</Label>
+                <Select
+                  value={selectedAuctionRuleId}
+                  onValueChange={setSelectedAuctionRuleId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {auctionRules.map((rule) => (
+                      <SelectItem key={rule.id} value={rule.id}>
+                        {rule.name} ({rule.currency} {rule.initial_budget.toLocaleString()})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedAuctionRuleId && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  {(() => {
+                    const selectedRule = auctionRules.find(r => r.id === selectedAuctionRuleId);
+                    if (!selectedRule) return null;
+                    return (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Initial Budget:</span>
+                          <span className="font-medium">{selectedRule.currency} {selectedRule.initial_budget.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Players per Team:</span>
+                          <span className="font-medium">{selectedRule.min_players_per_team || 11} - {selectedRule.max_players_per_team}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Budget Safety:</span>
+                          <span className="font-medium">{selectedRule.budget_safety_enabled ? "Enabled" : "Disabled"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Unsold Rule:</span>
+                          <span className="font-medium capitalize">{(selectedRule.unsold_player_rule || 'skip').replace(/_/g, ' ')}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              <Button 
+                onClick={handleApplyAuctionTemplate}
+                className="w-full"
+                disabled={!selectedAuctionRuleId || isApplying}
+              >
+                {isApplying ? "Applying..." : "Apply Template"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
