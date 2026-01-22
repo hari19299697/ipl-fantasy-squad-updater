@@ -32,7 +32,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
       tournament_id: tournamentId,
       name: newCategory.name,
       description: newCategory.description || undefined,
-      adder: parseInt(newCategory.adder) || 1000,
+      adder: parseFloat(newCategory.adder) || 1000,
     }]);
 
     setNewCategory({ name: "", description: "", adder: "1000" });
@@ -67,7 +67,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
           tournament_id: tournamentId,
           name: row.Name || row.name,
           description: row.Description || row.description || undefined,
-          adder: parseInt(row.Adder || row.adder) || 1000,
+          adder: parseFloat(row.Adder || row.adder) || 1000,
         }));
 
         bulkCreateCategories(categoriesToImport);
@@ -99,7 +99,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
       updates: {
         name: editingCategory.name,
         description: editingCategory.description || undefined,
-        adder: parseInt(editingCategory.adder) || 1000,
+        adder: parseFloat(editingCategory.adder) || 1000,
       },
     });
 
@@ -149,9 +149,10 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                 <Label>Bid Increment (Adder) *</Label>
                 <Input
                   type="number"
+                  step="any"
                   value={newCategory.adder}
                   onChange={(e) => setNewCategory({ ...newCategory, adder: e.target.value })}
-                  placeholder="1000"
+                  placeholder="0.25"
                 />
               </div>
             </div>
@@ -208,6 +209,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                   <Label>Bid Increment (Adder) *</Label>
                   <Input
                     type="number"
+                    step="any"
                     value={editingCategory.adder}
                     onChange={(e) => setEditingCategory({ ...editingCategory, adder: e.target.value })}
                   />
@@ -235,7 +237,7 @@ const CategoryManagementModal = ({ isOpen, onClose, tournamentId }: CategoryMana
                   <TableRow key={cat.id}>
                     <TableCell className="font-medium">{cat.name}</TableCell>
                     <TableCell>{cat.description || "—"}</TableCell>
-                    <TableCell>₹{cat.adder?.toLocaleString() || '1,000'}</TableCell>
+                    <TableCell>₹{cat.adder?.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) || '1,000'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button

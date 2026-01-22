@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useRealTeams } from "@/hooks/useRealTeams";
+import { useCategories } from "@/hooks/useCategories";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Download, Upload, Trash2, Edit2 } from "lucide-react";
@@ -30,6 +31,7 @@ const ROLES = ["batsman", "bowler", "all_rounder", "wicket_keeper"];
 const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManagementModalProps) => {
   const { players, createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers } = usePlayers(tournamentId);
   const { realTeams } = useRealTeams(tournamentId);
+  const { categories } = useCategories(tournamentId);
   const { toast } = useToast();
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
@@ -195,11 +197,18 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
               </div>
               <div>
                 <Label>Category</Label>
-                <Input
-                  value={newPlayer.category}
-                  onChange={(e) => setNewPlayer({ ...newPlayer, category: e.target.value })}
-                  placeholder="A, B, C, etc."
-                />
+                <Select value={newPlayer.category} onValueChange={(value) => setNewPlayer({ ...newPlayer, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Real Team *</Label>
@@ -297,11 +306,22 @@ const PlayerManagementModal = ({ isOpen, onClose, tournamentId }: PlayerManageme
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
-                          <Input
+                      <TableCell>
+                          <Select
                             value={editingPlayer.category || ""}
-                            onChange={(e) => setEditingPlayer({ ...editingPlayer, category: e.target.value })}
-                          />
+                            onValueChange={(value) => setEditingPlayer({ ...editingPlayer, category: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.name}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>
                           <Select
