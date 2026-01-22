@@ -26,7 +26,8 @@ import {
   Gavel, 
   Trophy, 
   DollarSign, 
-  Plus, 
+  Plus,
+  Minus,
   ChevronRight, 
   RotateCcw,
   Users,
@@ -197,6 +198,31 @@ const Auction = () => {
 
     toast({
       title: "Bid Incremented",
+      description: `New bid: ₹${formatCurrency(newBid)}`,
+    });
+  };
+
+  const handleDecrementBid = () => {
+    if (!currentPlayer || !currentCategory) return;
+
+    const adder = currentCategory.category.adder || 1000;
+    const basePrice = currentPlayer.base_price || 0;
+    const newBid = Math.max(basePrice, currentBid - adder);
+
+    if (newBid === currentBid) {
+      toast({
+        title: "Cannot Decrease",
+        description: "Bid cannot go below base price",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCurrentBid(newBid);
+    setBidAmount(newBid.toString());
+
+    toast({
+      title: "Bid Decremented",
       description: `New bid: ₹${formatCurrency(newBid)}`,
     });
   };
@@ -730,34 +756,46 @@ const Auction = () => {
 
                               {/* Bid Controls */}
                               <div className="space-y-4">
-                                <div className="flex flex-col sm:flex-row gap-3">
+                                {/* Increment/Decrement Buttons */}
+                                <div className="flex gap-3">
+                                  <Button
+                                    onClick={handleDecrementBid}
+                                    variant="outline"
+                                    size="lg"
+                                    className="flex-1 h-12 text-base font-semibold text-destructive hover:bg-destructive/10 border-destructive/30"
+                                  >
+                                    <Minus className="h-5 w-5 mr-2" />
+                                    -₹{formatCurrency(currentCategory?.category.adder) || '1,000'}
+                                  </Button>
                                   <Button
                                     onClick={handleIncrementBid}
                                     variant="outline"
                                     size="lg"
-                                    className="flex-1 h-12 text-base font-semibold"
+                                    className="flex-1 h-12 text-base font-semibold text-primary hover:bg-primary/10 border-primary/30"
                                   >
                                     <Plus className="h-5 w-5 mr-2" />
                                     +₹{formatCurrency(currentCategory?.category.adder) || '1,000'}
                                   </Button>
-                                  <div className="flex-1 flex gap-2">
-                                    <Input
-                                      type="number"
-                                      step="any"
-                                      placeholder="Custom bid amount"
-                                      value={bidAmount}
-                                      onChange={(e) => setBidAmount(e.target.value)}
-                                      className="flex-1 h-12 text-base"
-                                    />
-                                    <Button 
-                                      onClick={handleBid} 
-                                      disabled={!selectedOwner || !bidAmount || bidAmount.trim() === ''}
-                                      size="lg"
-                                      className="h-12 px-6"
-                                    >
-                                      Bid
-                                    </Button>
-                                  </div>
+                                </div>
+                                
+                                {/* Custom Bid Input */}
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="number"
+                                    step="any"
+                                    placeholder="Custom bid amount"
+                                    value={bidAmount}
+                                    onChange={(e) => setBidAmount(e.target.value)}
+                                    className="flex-1 h-12 text-base"
+                                  />
+                                  <Button 
+                                    onClick={handleBid} 
+                                    disabled={!selectedOwner || !bidAmount || bidAmount.trim() === ''}
+                                    size="lg"
+                                    className="h-12 px-6"
+                                  >
+                                    Bid
+                                  </Button>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
