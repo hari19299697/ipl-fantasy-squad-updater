@@ -35,8 +35,11 @@ import {
   Sparkles,
   User,
   Zap,
-  Crown
+  Crown,
+  ScrollText,
+  Clock
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import PlayerDetailModal from '@/components/PlayerDetailModal';
@@ -77,6 +80,9 @@ const Auction = () => {
     teamColor: '',
     soldPrice: 0,
   });
+  
+  // Audit logs state
+  const [auctionLogs, setAuctionLogs] = useState<any[]>([]);
 
   // Calculate minimum base price of unsold players
   const minBasePrice = React.useMemo(() => {
@@ -156,14 +162,59 @@ const Auction = () => {
     fetchAuctionRules();
   }, [tournamentId]);
 
-  // Initialize shuffled players
+  // Fetch auction logs
+  useEffect(() => {
+    const fetchAuctionLogs = async () => {
+      if (!tournamentId) return;
+      
+      const { data, error } = await supabase
+        .from('auction_logs')
+        .select(`
+          *,
+          players(name, category),
+          team_owners(name, short_name, color)
+        `)
+        .eq('tournament_id', tournamentId)
+        .eq('revoked', false)
+        .order('timestamp', { ascending: false });
+      
+      if (data && !error) {
+        setAuctionLogs(data);
+      }
+    };
+    
+    fetchAuctionLogs();
+    
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('auction-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'auction_logs',
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        () => {
+          fetchAuctionLogs();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tournamentId]);
+
+  // Initialize shuffled players - update when players change
   useEffect(() => {
     if (players.length > 0 && categories.length > 0) {
       const unsoldPlayers = players.filter(p => !p.owner_id);
       const shuffled = shuffleArray(unsoldPlayers);
       setShuffledPlayers(shuffled);
     }
-  }, [players.length, categories.length]);
+  }, [players, categories.length]);
 
   // Group shuffled players by category
   const playersByCategory = categories.map(category => ({
@@ -347,8 +398,7 @@ const Auction = () => {
       .update({ budget_remaining: owner.budget_remaining - currentBid })
       .eq('id', selectedOwner);
 
-    queryClient.invalidateQueries({ queryKey: ['teamOwners', tournamentId] });
-
+    // Insert auction log
     await supabase.from('auction_logs').insert({
       tournament_id: tournamentId,
       player_id: currentPlayer.id,
@@ -356,6 +406,13 @@ const Auction = () => {
       bid_amount: currentBid,
       action: 'sold',
     });
+
+    // Invalidate queries to refresh data immediately
+    queryClient.invalidateQueries({ queryKey: ['players', tournamentId] });
+    queryClient.invalidateQueries({ queryKey: ['teamOwners', tournamentId] });
+    
+    // Remove sold player from shuffled list
+    setShuffledPlayers(prev => prev.filter(p => p.id !== currentPlayer.id));
   };
 
   const handleCelebrationComplete = () => {
@@ -595,7 +652,7 @@ const Auction = () => {
 
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <Tabs defaultValue="live" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-12 p-1 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-12 p-1 bg-muted/50">
             <TabsTrigger value="live" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Live</span>
@@ -610,7 +667,11 @@ const Auction = () => {
             </TabsTrigger>
             <TabsTrigger value="unsold" className="gap-2">
               <User className="h-4 w-4" />
-              <span>Unsold ({unsoldPlayers.length})</span>
+              <span className="hidden sm:inline">Unsold ({unsoldPlayers.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="gap-2">
+              <ScrollText className="h-4 w-4" />
+              <span className="hidden sm:inline">Audit</span>
             </TabsTrigger>
           </TabsList>
 
@@ -918,44 +979,68 @@ const Auction = () => {
                         </div>
                       </Card>
 
-                      {/* Leaderboard */}
+                      {/* Standings with Category Breakdown */}
                       <Card className="p-4">
                         <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                           <Crown className="h-4 w-4 text-secondary" />
                           Standings
                         </h3>
-                        <div className="space-y-2">
-                          {[...teamOwners]
-                            .sort((a, b) => (b.total_points || 0) - (a.total_points || 0))
-                            .slice(0, 5)
-                            .map((owner, index) => (
-                              <motion.div
-                                key={owner.id}
-                                className="flex items-center gap-3 p-2 rounded-lg leaderboard-entry"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                              >
-                                <div 
-                                  className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                                    index === 0 ? 'bg-secondary text-secondary-foreground' : 'bg-muted'
-                                  }`}
-                                >
-                                  {index + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{owner.short_name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {players.filter(p => p.owner_id === owner.id).length} players
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-bold">{owner.total_points || 0}</p>
-                                  <p className="text-xs text-muted-foreground">pts</p>
-                                </div>
-                              </motion.div>
-                            ))}
-                        </div>
+                        <ScrollArea className="h-[300px]">
+                          <div className="space-y-3 pr-2">
+                            {[...teamOwners]
+                              .sort((a, b) => players.filter(p => p.owner_id === b.id).length - players.filter(p => p.owner_id === a.id).length)
+                              .map((owner, index) => {
+                                const ownerPlayers = players.filter(p => p.owner_id === owner.id);
+                                const categoryBreakdown = categories.reduce((acc, cat) => {
+                                  acc[cat.name] = ownerPlayers.filter(p => p.category === cat.name).length;
+                                  return acc;
+                                }, {} as Record<string, number>);
+                                
+                                return (
+                                  <motion.div
+                                    key={owner.id}
+                                    className="p-3 rounded-lg bg-muted/30 border border-border/50"
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                  >
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <div 
+                                        className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                                          index === 0 ? 'bg-secondary text-secondary-foreground' : 'bg-muted'
+                                        }`}
+                                      >
+                                        {index + 1}
+                                      </div>
+                                      <div 
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: owner.color }}
+                                      />
+                                      <span className="text-sm font-semibold truncate flex-1">{owner.short_name}</span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {ownerPlayers.length} players
+                                      </Badge>
+                                    </div>
+                                    {ownerPlayers.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {Object.entries(categoryBreakdown)
+                                          .filter(([_, count]) => count > 0)
+                                          .map(([category, count]) => (
+                                            <Badge 
+                                              key={category} 
+                                              variant="outline" 
+                                              className="text-xs py-0 px-1.5"
+                                            >
+                                              {category}: {count}
+                                            </Badge>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                );
+                              })}
+                          </div>
+                        </ScrollArea>
                       </Card>
                     </div>
                   </div>
@@ -1079,6 +1164,108 @@ const Auction = () => {
                 </p>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <ScrollText className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">Auction Audit Trail</h2>
+                <Badge variant="secondary" className="ml-auto">
+                  {auctionLogs.length} entries
+                </Badge>
+              </div>
+              
+              {auctionLogs.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ScrollText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No auction activity yet</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-3 pr-4">
+                    {auctionLogs.map((log, idx) => {
+                      const timestamp = new Date(log.timestamp);
+                      const formattedTime = timestamp.toLocaleTimeString('en-IN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        second: '2-digit'
+                      });
+                      const formattedDate = timestamp.toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short'
+                      });
+                      
+                      const getActionColor = (action: string) => {
+                        switch (action) {
+                          case 'sold': return 'bg-green-500/10 text-green-600 border-green-500/20';
+                          case 'bid': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+                          case 'unsold': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+                          default: return 'bg-muted text-muted-foreground';
+                        }
+                      };
+                      
+                      const getActionIcon = (action: string) => {
+                        switch (action) {
+                          case 'sold': return <Trophy className="h-4 w-4" />;
+                          case 'bid': return <Gavel className="h-4 w-4" />;
+                          case 'unsold': return <User className="h-4 w-4" />;
+                          default: return <Clock className="h-4 w-4" />;
+                        }
+                      };
+                      
+                      return (
+                        <motion.div
+                          key={log.id}
+                          className="flex items-start gap-4 p-4 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.02 }}
+                        >
+                          <div className={`p-2 rounded-lg ${getActionColor(log.action)}`}>
+                            {getActionIcon(log.action)}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold">{log.players?.name || 'Unknown Player'}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {log.players?.category || 'N/A'}
+                              </Badge>
+                            </div>
+                            
+                            <div className="text-sm text-muted-foreground">
+                              {log.action === 'sold' && (
+                                <span>
+                                  Sold to <span className="font-medium" style={{ color: log.team_owners?.color }}>
+                                    {log.team_owners?.name}
+                                  </span> for <span className="font-semibold text-primary">₹{formatCurrency(log.bid_amount)}</span>
+                                </span>
+                              )}
+                              {log.action === 'bid' && (
+                                <span>
+                                  <span className="font-medium" style={{ color: log.team_owners?.color }}>
+                                    {log.team_owners?.name}
+                                  </span> bid <span className="font-semibold text-primary">₹{formatCurrency(log.bid_amount)}</span>
+                                </span>
+                              )}
+                              {log.action === 'unsold' && (
+                                <span>Player went unsold</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                            <div>{formattedTime}</div>
+                            <div>{formattedDate}</div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+            </Card>
           </TabsContent>
         </Tabs>
 
