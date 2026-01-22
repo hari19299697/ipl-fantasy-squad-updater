@@ -37,7 +37,8 @@ import {
   Zap,
   Crown,
   ScrollText,
-  Clock
+  Clock,
+  Undo2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,6 +84,16 @@ const Auction = () => {
   
   // Audit logs state
   const [auctionLogs, setAuctionLogs] = useState<any[]>([]);
+  
+  // Last sold player for undo
+  const [lastSoldPlayer, setLastSoldPlayer] = useState<{
+    playerId: string;
+    playerName: string;
+    ownerId: string;
+    ownerName: string;
+    soldPrice: number;
+    previousBudget: number;
+  } | null>(null);
 
   // Calculate minimum base price of unsold players
   const minBasePrice = React.useMemo(() => {
@@ -374,75 +385,125 @@ const Auction = () => {
     const owner = teamOwners.find(o => o.id === selectedOwner);
     if (!owner) return;
 
+    const soldPlayerId = currentPlayer.id;
+    const soldPlayerName = currentPlayer.name;
+    const soldOwnerId = selectedOwner;
+    const soldOwnerName = owner.name;
+    const soldPrice = currentBid;
+    const previousBudget = owner.budget_remaining;
+
+    // Store for undo
+    setLastSoldPlayer({
+      playerId: soldPlayerId,
+      playerName: soldPlayerName,
+      ownerId: soldOwnerId,
+      ownerName: soldOwnerName,
+      soldPrice: soldPrice,
+      previousBudget: previousBudget,
+    });
+
     // Show celebration
     setCelebrationData({
-      playerName: currentPlayer.name,
-      teamName: owner.name,
+      playerName: soldPlayerName,
+      teamName: soldOwnerName,
       teamColor: owner.color || '#004CA3',
-      soldPrice: currentBid,
+      soldPrice: soldPrice,
     });
     setShowCelebration(true);
 
+    // Remove sold player from shuffled list IMMEDIATELY
+    const newShuffledPlayers = shuffledPlayers.filter(p => p.id !== soldPlayerId);
+    setShuffledPlayers(newShuffledPlayers);
+
+    // Move to next player immediately
+    const remainingInCategory = newShuffledPlayers.filter(p => p.category === currentCategory?.category.name);
+    if (remainingInCategory.length > 0) {
+      // If current index is beyond remaining players, reset to 0
+      if (currentPlayerIndex >= remainingInCategory.length) {
+        setCurrentPlayerIndex(0);
+      }
+    }
+
+    // Reset bid state for next player
+    setCurrentBid(0);
+    setSelectedOwner(null);
+    setBidAmount('');
+
     // Update player with owner and auction price
     await updatePlayer({
-      id: currentPlayer.id,
+      id: soldPlayerId,
       updates: {
-        owner_id: selectedOwner,
-        auction_price: currentBid,
+        owner_id: soldOwnerId,
+        auction_price: soldPrice,
       },
     });
 
     // Update owner budget
     await supabase
       .from('team_owners')
-      .update({ budget_remaining: owner.budget_remaining - currentBid })
-      .eq('id', selectedOwner);
+      .update({ budget_remaining: previousBudget - soldPrice })
+      .eq('id', soldOwnerId);
 
     // Insert auction log
     await supabase.from('auction_logs').insert({
       tournament_id: tournamentId,
-      player_id: currentPlayer.id,
-      bidder_id: selectedOwner,
-      bid_amount: currentBid,
+      player_id: soldPlayerId,
+      bidder_id: soldOwnerId,
+      bid_amount: soldPrice,
       action: 'sold',
     });
 
-    // Invalidate queries to refresh data immediately
+    // Invalidate queries to refresh data
     queryClient.invalidateQueries({ queryKey: ['players', tournamentId] });
     queryClient.invalidateQueries({ queryKey: ['teamOwners', tournamentId] });
-    
-    // Remove sold player from shuffled list
-    setShuffledPlayers(prev => prev.filter(p => p.id !== currentPlayer.id));
+  };
+
+  const handleUndoLastSale = async () => {
+    if (!lastSoldPlayer || !tournamentId) return;
+
+    try {
+      // Revert player ownership
+      await supabase
+        .from('players')
+        .update({ owner_id: null, auction_price: null })
+        .eq('id', lastSoldPlayer.playerId);
+
+      // Restore owner budget
+      await supabase
+        .from('team_owners')
+        .update({ budget_remaining: lastSoldPlayer.previousBudget })
+        .eq('id', lastSoldPlayer.ownerId);
+
+      // Mark the sold log as revoked
+      await supabase
+        .from('auction_logs')
+        .update({ revoked: true })
+        .eq('player_id', lastSoldPlayer.playerId)
+        .eq('action', 'sold')
+        .eq('revoked', false);
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['players', tournamentId] });
+      queryClient.invalidateQueries({ queryKey: ['teamOwners', tournamentId] });
+
+      toast({
+        title: "Sale Undone",
+        description: `${lastSoldPlayer.playerName} is back in the pool`,
+      });
+
+      // Clear last sold player
+      setLastSoldPlayer(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to undo sale",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCelebrationComplete = () => {
     setShowCelebration(false);
-
-    const remainingUnsoldInCategory = currentCategoryPlayers.filter(
-      p => p.id !== currentPlayer?.id && !p.owner_id
-    );
-
-    if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
-      setCurrentPlayerIndex(prev => prev + 1);
-    } else if (remainingUnsoldInCategory.length > 0) {
-      setCurrentPlayerIndex(0);
-      toast({
-        title: "Continuing with Unsold Players",
-        description: `${remainingUnsoldInCategory.length} unsold players remaining in ${currentCategory?.category.name}`,
-      });
-    } else {
-      if (currentCategoryIndex + 1 < playersByCategory.length) {
-        toast({
-          title: "Category Complete!",
-          description: `${currentCategory?.category.name} auction complete. Click "Next Category" to continue.`,
-        });
-      } else {
-        toast({
-          title: "Auction Complete!",
-          description: "All categories have been auctioned",
-        });
-      }
-    }
   };
 
   const handleUnsold = async () => {
@@ -878,6 +939,23 @@ const Auction = () => {
                                     Unsold
                                   </Button>
                                 </div>
+
+                                {/* Undo Last Sale Button */}
+                                {lastSoldPlayer && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                  >
+                                    <Button
+                                      onClick={handleUndoLastSale}
+                                      variant="outline"
+                                      className="w-full h-10 text-sm border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                                    >
+                                      <Undo2 className="h-4 w-4 mr-2" />
+                                      Undo: {lastSoldPlayer.playerName} → {lastSoldPlayer.ownerName} (₹{formatCurrency(lastSoldPlayer.soldPrice)})
+                                    </Button>
+                                  </motion.div>
+                                )}
 
                                 {currentPlayerIndex + 1 >= currentCategoryPlayers.length && 
                                  currentCategoryIndex + 1 < playersByCategory.length && (
