@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTournament } from "@/hooks/useTournaments";
+import { useTournament, useTournaments } from "@/hooks/useTournaments";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useTeamOwners } from "@/hooks/useTeamOwners";
 import { useMatches } from "@/hooks/useMatches";
@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import TeamCard from "@/components/TeamCard";
 import TeamSquadModal from "@/components/TeamSquadModal";
 import TeamManagementModal from "@/components/TeamManagementModal";
@@ -27,6 +28,7 @@ const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: tournament, isLoading: loadingTournament } = useTournament(id);
+  const { deleteTournament, isDeleting } = useTournaments();
   const { players, isLoading: loadingPlayers } = usePlayers(id);
   const { teamOwners, isLoading: loadingOwners } = useTeamOwners(id);
   const { matches, isLoading: loadingMatches } = useMatches(id);
@@ -38,6 +40,17 @@ const TournamentDetail = () => {
   const [showRealTeamManagement, setShowRealTeamManagement] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [showMatchManagement, setShowMatchManagement] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteTournament = () => {
+    if (id) {
+      deleteTournament(id, {
+        onSuccess: () => {
+          navigate("/tournaments");
+        },
+      });
+    }
+  };
 
   const isLoading = loadingTournament || loadingPlayers || loadingOwners || loadingMatches;
 
@@ -138,6 +151,14 @@ const TournamentDetail = () => {
                 >
                   <Users className="h-4 w-4 mr-2" />
                   All Players
+                </Button>
+                <Button
+                  onClick={() => setShowDeleteDialog(true)}
+                  variant="destructive"
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Tournament
                 </Button>
               </div>
             </div>
@@ -475,6 +496,27 @@ const TournamentDetail = () => {
           onClose={() => setShowMatchManagement(false)}
           tournamentId={id || ""}
         />
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Tournament</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{tournament.name}"? This will permanently delete all associated data including teams, players, matches, and auction logs. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteTournament}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Tournament"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

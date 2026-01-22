@@ -82,6 +82,7 @@ export type Database = {
           is_master_template: boolean | null
           max_players_per_team: number
           min_bid: number
+          min_players_per_team: number
           name: string
           reserve_price_field: string
           role_constraints: Json
@@ -100,6 +101,7 @@ export type Database = {
           is_master_template?: boolean | null
           max_players_per_team: number
           min_bid: number
+          min_players_per_team?: number
           name: string
           reserve_price_field?: string
           role_constraints?: Json
@@ -118,6 +120,7 @@ export type Database = {
           is_master_template?: boolean | null
           max_players_per_team?: number
           min_bid?: number
+          min_players_per_team?: number
           name?: string
           reserve_price_field?: string
           role_constraints?: Json
