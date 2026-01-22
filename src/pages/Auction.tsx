@@ -415,10 +415,26 @@ const Auction = () => {
     const newShuffledPlayers = shuffledPlayers.filter(p => p.id !== soldPlayerId);
     setShuffledPlayers(newShuffledPlayers);
 
-    // Move to next player immediately
+    // Check remaining players in current category
     const remainingInCategory = newShuffledPlayers.filter(p => p.category === currentCategory?.category.name);
-    if (remainingInCategory.length > 0) {
-      // If current index is beyond remaining players, reset to 0
+    
+    if (remainingInCategory.length === 0) {
+      // No more players in this category - show toast to move to next
+      if (currentCategoryIndex + 1 < playersByCategory.length) {
+        toast({
+          title: "Category Complete!",
+          description: `All players in ${currentCategory?.category.name} are done. Click "Next Category" to continue.`,
+        });
+      } else {
+        toast({
+          title: "All Categories Complete!",
+          description: "All players have been auctioned.",
+        });
+      }
+      // Reset index for when they switch category
+      setCurrentPlayerIndex(0);
+    } else {
+      // Move to next player if current index is beyond remaining
       if (currentPlayerIndex >= remainingInCategory.length) {
         setCurrentPlayerIndex(0);
       }
@@ -975,13 +991,38 @@ const Auction = () => {
                         </motion.div>
                       ) : (
                         <Card className="p-8 text-center">
-                          <p className="text-muted-foreground">
+                          <Trophy className="w-12 h-12 mx-auto mb-4 text-secondary" />
+                          <p className="text-lg font-semibold mb-2">
                             {currentCategory 
-                              ? `No more players in ${currentCategory.category.name} category`
+                              ? `${currentCategory.category.name} Complete!`
+                              : 'No players available'}
+                          </p>
+                          <p className="text-muted-foreground mb-4">
+                            {currentCategory 
+                              ? 'All players in this category have been auctioned'
                               : 'No players available for auction'}
                           </p>
+                          
+                          {/* Show Undo button even when no current player */}
+                          {lastSoldPlayer && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mb-4"
+                            >
+                              <Button
+                                onClick={handleUndoLastSale}
+                                variant="outline"
+                                className="w-full h-10 text-sm border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                              >
+                                <Undo2 className="h-4 w-4 mr-2" />
+                                Undo: {lastSoldPlayer.playerName} → {lastSoldPlayer.ownerName} (₹{formatCurrency(lastSoldPlayer.soldPrice)})
+                              </Button>
+                            </motion.div>
+                          )}
+                          
                           {currentCategoryIndex + 1 < playersByCategory.length && (
-                            <Button onClick={handleNextCategory} className="mt-4">
+                            <Button onClick={handleNextCategory} size="lg">
                               Next Category: {playersByCategory[currentCategoryIndex + 1].category.name}
                               <ChevronRight className="ml-2 h-4 w-4" />
                             </Button>
