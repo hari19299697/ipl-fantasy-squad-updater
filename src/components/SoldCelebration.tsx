@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Sparkles, Star } from 'lucide-react';
+import { Trophy, Sparkles, Star, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SoldCelebrationProps {
   isVisible: boolean;
@@ -52,7 +53,7 @@ const SoldCelebration: React.FC<SoldCelebrationProps> = ({
 }) => {
   useEffect(() => {
     if (isVisible) {
-      const timer = setTimeout(onComplete, 3500);
+      const timer = setTimeout(onComplete, 5000);
       return () => clearTimeout(timer);
     }
   }, [isVisible, onComplete]);
@@ -75,12 +76,29 @@ const SoldCelebration: React.FC<SoldCelebrationProps> = ({
             exit={{ opacity: 0 }}
           />
           
+          {/* Close Button */}
+          <motion.div
+            className="absolute top-4 right-4 z-20"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onComplete}
+              className="rounded-full bg-background/80 hover:bg-background border-border/50"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </motion.div>
+          
           {/* Confetti */}
           <Confetti color={teamColor} />
           
           {/* Content */}
           <motion.div
-            className="relative z-10 text-center px-8 py-12"
+            className="relative z-10 text-center px-8 py-12 cursor-pointer"
             initial={{ scale: 0.5, y: 50 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0 }}
@@ -90,6 +108,7 @@ const SoldCelebration: React.FC<SoldCelebrationProps> = ({
               damping: 20,
               delay: 0.1 
             }}
+            onClick={onComplete}
           >
             {/* Trophy icon with glow */}
             <motion.div
@@ -195,6 +214,16 @@ const SoldCelebration: React.FC<SoldCelebrationProps> = ({
                 }}
               />
             </motion.div>
+
+            {/* Click to close hint */}
+            <motion.p
+              className="mt-6 text-sm text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+            >
+              Click anywhere or press X to close
+            </motion.p>
           </motion.div>
         </motion.div>
       )}
