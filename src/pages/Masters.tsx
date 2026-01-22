@@ -37,6 +37,7 @@ const Masters = () => {
     min_bid: 100000,
     increment_value: 100000,
     bid_increment_type: "fixed",
+    min_players_per_team: 11,
     max_players_per_team: 25,
     currency: "INR",
   });
@@ -87,6 +88,7 @@ const Masters = () => {
             min_bid: 100000,
             increment_value: 100000,
             bid_increment_type: "fixed",
+            min_players_per_team: 11,
             max_players_per_team: 25,
             currency: "INR",
           });
@@ -144,6 +146,7 @@ const Masters = () => {
       min_bid: rule.min_bid,
       increment_value: rule.increment_value,
       bid_increment_type: rule.bid_increment_type,
+      min_players_per_team: rule.min_players_per_team || 11,
       max_players_per_team: rule.max_players_per_team,
       currency: rule.currency,
     });
@@ -305,6 +308,23 @@ const Masters = () => {
                               type="number"
                               value={auctionForm.increment_value}
                               onChange={(e) => setAuctionForm({ ...auctionForm, increment_value: parseInt(e.target.value) })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Currency</Label>
+                            <Input
+                              value={auctionForm.currency}
+                              onChange={(e) => setAuctionForm({ ...auctionForm, currency: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Min Players per Team</Label>
+                            <Input
+                              type="number"
+                              value={auctionForm.min_players_per_team}
+                              onChange={(e) => setAuctionForm({ ...auctionForm, min_players_per_team: parseInt(e.target.value) })}
                             />
                           </div>
                           <div className="space-y-2">
