@@ -40,6 +40,9 @@ const Masters = () => {
     min_players_per_team: 11,
     max_players_per_team: 25,
     currency: "INR",
+    budget_safety_enabled: true,
+    unsold_player_rule: "skip",
+    category_limits: {} as Record<string, number>,
   });
 
   const [scoringForm, setScoringForm] = useState({
@@ -91,6 +94,9 @@ const Masters = () => {
             min_players_per_team: 11,
             max_players_per_team: 25,
             currency: "INR",
+            budget_safety_enabled: true,
+            unsold_player_rule: "skip",
+            category_limits: {},
           });
         },
       }
@@ -149,6 +155,9 @@ const Masters = () => {
       min_players_per_team: rule.min_players_per_team || 11,
       max_players_per_team: rule.max_players_per_team,
       currency: rule.currency,
+      budget_safety_enabled: rule.budget_safety_enabled ?? true,
+      unsold_player_rule: rule.unsold_player_rule || "skip",
+      category_limits: rule.category_limits || {},
     });
     setAuctionDialogOpen(true);
   };
@@ -336,6 +345,68 @@ const Masters = () => {
                             />
                           </div>
                         </div>
+
+                        {/* Auction Rules Section */}
+                        <div className="border-t pt-4 mt-4">
+                          <h4 className="font-semibold text-lg mb-4 text-foreground">Auction Rules</h4>
+                          
+                          {/* Budget Safety Rule */}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">Budget Safety Rule</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Ensures: Remaining Purse ≥ (Remaining Slots × Min Base Price)
+                                </p>
+                              </div>
+                              <Select
+                                value={auctionForm.budget_safety_enabled ? "enabled" : "disabled"}
+                                onValueChange={(value) => setAuctionForm({ ...auctionForm, budget_safety_enabled: value === "enabled" })}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="enabled">Enabled</SelectItem>
+                                  <SelectItem value="disabled">Disabled</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Unsold Player Rule */}
+                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">Unsold Player Rule</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  What happens when no bids are placed on a player
+                                </p>
+                              </div>
+                              <Select
+                                value={auctionForm.unsold_player_rule}
+                                onValueChange={(value) => setAuctionForm({ ...auctionForm, unsold_player_rule: value })}
+                              >
+                                <SelectTrigger className="w-40">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="skip">Skip Player</SelectItem>
+                                  <SelectItem value="retry_next_round">Retry Next Round</SelectItem>
+                                  <SelectItem value="retry_immediately">Retry Immediately</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Category Limits Info */}
+                            <div className="p-3 rounded-lg border bg-muted/30">
+                              <div className="space-y-1">
+                                <Label className="text-sm font-medium">Category-wise Limits (Optional)</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Set maximum players per category in tournament settings after applying this template.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                         <Button 
                           onClick={editingAuction ? handleUpdateAuction : handleCreateAuction}
                           className="w-full"
@@ -357,19 +428,25 @@ const Masters = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
-                        <TableHead>Initial Budget</TableHead>
-                        <TableHead>Min Bid</TableHead>
-                        <TableHead>Max Players</TableHead>
+                        <TableHead>Budget</TableHead>
+                        <TableHead>Players</TableHead>
+                        <TableHead>Budget Safety</TableHead>
+                        <TableHead>Unsold Rule</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {auctionRules.map((rule) => (
+                      {auctionRules.map((rule: any) => (
                         <TableRow key={rule.id}>
                           <TableCell className="font-medium">{rule.name}</TableCell>
                           <TableCell>{rule.currency} {rule.initial_budget.toLocaleString()}</TableCell>
-                          <TableCell>{rule.currency} {rule.min_bid.toLocaleString()}</TableCell>
-                          <TableCell>{rule.max_players_per_team}</TableCell>
+                          <TableCell>{rule.min_players_per_team || 11}-{rule.max_players_per_team}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs ${rule.budget_safety_enabled !== false ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
+                              {rule.budget_safety_enabled !== false ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="capitalize">{(rule.unsold_player_rule || 'skip').replace(/_/g, ' ')}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button

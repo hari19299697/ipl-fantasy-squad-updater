@@ -5,13 +5,47 @@ import { useTournaments } from "@/hooks/useTournaments";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Trophy, Users, Loader2 } from "lucide-react";
+import { Plus, Calendar, Trophy, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 const Tournaments = () => {
   const navigate = useNavigate();
-  const { tournaments, isLoading } = useTournaments();
+  const { tournaments, isLoading, deleteTournament } = useTournaments();
   const [filter, setFilter] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tournamentToDelete, setTournamentToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteClick = (e: React.MouseEvent, tournament: { id: string; name: string }) => {
+    e.stopPropagation();
+    setTournamentToDelete(tournament);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (tournamentToDelete) {
+      deleteTournament(tournamentToDelete.id, {
+        onSuccess: () => {
+          toast.success(`Tournament "${tournamentToDelete.name}" deleted successfully`);
+          setDeleteDialogOpen(false);
+          setTournamentToDelete(null);
+        },
+        onError: () => {
+          toast.error("Failed to delete tournament");
+        }
+      });
+    }
+  };
 
   const filteredTournaments = tournaments.filter(tournament => {
     if (filter === "all") return true;
@@ -91,15 +125,25 @@ const Tournaments = () => {
             {filteredTournaments.map((tournament) => (
               <Card 
                 key={tournament.id} 
-                className="cursor-pointer hover:shadow-lg transition-shadow"
+                className="cursor-pointer hover:shadow-lg transition-shadow relative group"
                 onClick={() => navigate(`/tournaments/${tournament.id}`)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <Trophy className="h-8 w-8 text-primary" />
-                    <Badge className={getStatusColor(tournament.status)}>
-                      {tournament.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getStatusColor(tournament.status)}>
+                        {tournament.status}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleDeleteClick(e, { id: tournament.id, name: tournament.name })}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                   <CardTitle className="mt-2">{tournament.name}</CardTitle>
                   <CardDescription className="capitalize">
@@ -121,6 +165,27 @@ const Tournaments = () => {
             ))}
           </div>
         )}
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Tournament</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{tournamentToDelete?.name}"? 
+                This action cannot be undone and will permanently delete all associated data including teams, players, and matches.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Tournament
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

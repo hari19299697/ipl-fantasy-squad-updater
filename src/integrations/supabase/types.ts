@@ -73,6 +73,8 @@ export type Database = {
         Row: {
           auto_assignment_rule: string
           bid_increment_type: string
+          budget_safety_enabled: boolean | null
+          category_limits: Json | null
           created_at: string | null
           created_by: string | null
           currency: string
@@ -88,10 +90,13 @@ export type Database = {
           role_constraints: Json
           rounds: number
           type: string
+          unsold_player_rule: string | null
         }
         Insert: {
           auto_assignment_rule?: string
           bid_increment_type: string
+          budget_safety_enabled?: boolean | null
+          category_limits?: Json | null
           created_at?: string | null
           created_by?: string | null
           currency?: string
@@ -107,10 +112,13 @@ export type Database = {
           role_constraints?: Json
           rounds?: number
           type: string
+          unsold_player_rule?: string | null
         }
         Update: {
           auto_assignment_rule?: string
           bid_increment_type?: string
+          budget_safety_enabled?: boolean | null
+          category_limits?: Json | null
           created_at?: string | null
           created_by?: string | null
           currency?: string
@@ -126,6 +134,7 @@ export type Database = {
           role_constraints?: Json
           rounds?: number
           type?: string
+          unsold_player_rule?: string | null
         }
         Relationships: []
       }
