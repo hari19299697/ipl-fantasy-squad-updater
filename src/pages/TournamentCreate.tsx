@@ -6,6 +6,7 @@ import { usePlayers } from "@/hooks/usePlayers";
 import { useRealTeams } from "@/hooks/useRealTeams";
 import { useCategories } from "@/hooks/useCategories";
 import Header from "@/components/Header";
+import AdminGuard from "@/components/AdminGuard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -276,9 +277,9 @@ const TournamentCreate = () => {
   };
 
   return (
+    <AdminGuard>
     <div className="min-h-screen bg-background">
       <Header />
-      
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <Button 
           variant="ghost" 
@@ -580,6 +581,7 @@ const TournamentCreate = () => {
         )}
       </div>
     </div>
+    </AdminGuard>
   );
 };
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Header from "@/components/Header";
+import AdminGuard from "@/components/AdminGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

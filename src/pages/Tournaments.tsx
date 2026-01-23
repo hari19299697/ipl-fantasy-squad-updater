@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { useTournaments } from "@/hooks/useTournaments";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import { toast } from "sonner";
 const Tournaments = () => {
   const navigate = useNavigate();
   const { tournaments, isLoading, deleteTournament } = useTournaments();
+  const { isAdmin } = useAuth();
   const [filter, setFilter] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tournamentToDelete, setTournamentToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -70,16 +72,20 @@ const Tournaments = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tournaments</h1>
-            <p className="text-sm text-muted-foreground">Manage all your fantasy tournaments</p>
+            <p className="text-sm text-muted-foreground">
+              {isAdmin ? "Manage all your fantasy tournaments" : "View all fantasy tournaments"}
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => navigate("/")} className="w-full sm:w-auto">
               Back to Home
             </Button>
-            <Button onClick={() => navigate("/tournaments/new")} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Tournament
-            </Button>
+            {isAdmin && (
+              <Button onClick={() => navigate("/tournaments/new")} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Tournament
+              </Button>
+            )}
           </div>
         </div>
 
@@ -110,14 +116,18 @@ const Tournaments = () => {
               <h3 className="text-lg font-semibold mb-2">No tournaments found</h3>
               <p className="text-muted-foreground mb-4">
                 {filter === "all" 
-                  ? "Create your first tournament to get started"
+                  ? isAdmin 
+                    ? "Create your first tournament to get started"
+                    : "No tournaments available yet"
                   : `No ${filter} tournaments available`
                 }
               </p>
-              <Button onClick={() => navigate("/tournaments/new")}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Tournament
-              </Button>
+              {isAdmin && (
+                <Button onClick={() => navigate("/tournaments/new")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Tournament
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -135,14 +145,16 @@ const Tournaments = () => {
                       <Badge className={getStatusColor(tournament.status)}>
                         {tournament.status}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDeleteClick(e, { id: tournament.id, name: tournament.name })}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => handleDeleteClick(e, { id: tournament.id, name: tournament.name })}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <CardTitle className="mt-2">{tournament.name}</CardTitle>
