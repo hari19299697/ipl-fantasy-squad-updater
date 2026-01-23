@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useTournament } from '@/hooks/useTournaments';
 import { useToast } from '@/hooks/use-toast';
+import AdminGuard from '@/components/AdminGuard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

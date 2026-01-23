@@ -6,12 +6,13 @@ import { useTeamOwners } from "@/hooks/useTeamOwners";
 import { useMatches } from "@/hooks/useMatches";
 import { useAuctionRules } from "@/hooks/useAuctionRules";
 import { useTournamentAuctionRules } from "@/hooks/useTournamentAuctionRules";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2, Check, FileText } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2, Check, FileText, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,6 +33,7 @@ type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const { data: tournament, isLoading: loadingTournament } = useTournament(id);
   const { deleteTournament, isDeleting } = useTournaments();
   const { players, isLoading: loadingPlayers } = usePlayers(id);
@@ -147,38 +149,44 @@ const TournamentDetail = () => {
                 </CardDescription>
               </div>
               <div className="flex flex-col sm:flex-row flex-wrap gap-2">
-                <Button
-                  onClick={() => navigate(`/auction/${tournament.id}`)}
-                  variant="default"
-                  className="w-full sm:w-auto"
-                >
-                  <Gavel className="h-4 w-4 mr-2" />
-                  Start Auction
-                </Button>
-                <Button
-                  onClick={() => navigate(`/update-points/${tournament.id}`)}
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Update Points
-                </Button>
+                {isAdmin && (
+                  <Button
+                    onClick={() => navigate(`/auction/${tournament.id}`)}
+                    variant="default"
+                    className="w-full sm:w-auto"
+                  >
+                    <Gavel className="h-4 w-4 mr-2" />
+                    Start Auction
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    onClick={() => navigate(`/update-points/${tournament.id}`)}
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Update Points
+                  </Button>
+                )}
                 <Button
                   onClick={() => navigate(`/players/${tournament.id}`)}
                   variant="outline"
                   className="w-full sm:w-auto"
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  All Players
+                  {isAdmin ? <Users className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                  {isAdmin ? "All Players" : "View Players"}
                 </Button>
-                <Button
-                  onClick={() => setShowDeleteDialog(true)}
-                  variant="destructive"
-                  className="w-full sm:w-auto"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Tournament
-                </Button>
+                {isAdmin && (
+                  <Button
+                    onClick={() => setShowDeleteDialog(true)}
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Tournament
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -209,34 +217,38 @@ const TournamentDetail = () => {
 
         {/* Tabs for different views */}
         <Tabs defaultValue="leaderboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-auto">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} h-auto`}>
             <TabsTrigger value="leaderboard" className="text-xs sm:text-sm py-2">Leaderboard</TabsTrigger>
             <TabsTrigger value="teams" className="text-xs sm:text-sm py-2">Teams</TabsTrigger>
             <TabsTrigger value="players" className="text-xs sm:text-sm py-2">Players</TabsTrigger>
             <TabsTrigger value="matches" className="text-xs sm:text-sm py-2">Matches</TabsTrigger>
-            <TabsTrigger value="masters" className="text-xs sm:text-sm py-2">Masters</TabsTrigger>
+            {isAdmin && <TabsTrigger value="masters" className="text-xs sm:text-sm py-2">Masters</TabsTrigger>}
           </TabsList>
 
           {/* Leaderboard Tab */}
           <TabsContent value="leaderboard" className="mt-6">
-            <div className="flex justify-end mb-4">
-              <Button onClick={() => setShowTeamManagement(true)} variant="outline">
-                <Settings className="h-4 w-4 mr-2" />
-                Manage Teams
-              </Button>
-            </div>
+            {isAdmin && (
+              <div className="flex justify-end mb-4">
+                <Button onClick={() => setShowTeamManagement(true)} variant="outline">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Manage Teams
+                </Button>
+              </div>
+            )}
             {teamOwners.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-semibold mb-2">No Teams Yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Add team owners during tournament setup to see the leaderboard
+                    {isAdmin ? "Add team owners during tournament setup to see the leaderboard" : "No teams have been added to this tournament yet"}
                   </p>
-                  <Button onClick={() => setShowTeamManagement(true)}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Add Teams
-                  </Button>
+                  {isAdmin && (
+                    <Button onClick={() => setShowTeamManagement(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Add Teams
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -259,10 +271,12 @@ const TournamentDetail = () => {
                     <CardTitle>All Teams</CardTitle>
                     <CardDescription>Complete team database for this tournament</CardDescription>
                   </div>
-                  <Button onClick={() => setShowTeamManagement(true)} variant="outline">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Teams
-                  </Button>
+                  {isAdmin && (
+                    <Button onClick={() => setShowTeamManagement(true)} variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Teams
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -271,12 +285,14 @@ const TournamentDetail = () => {
                     <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-semibold mb-2">No Teams Yet</h3>
                     <p className="text-muted-foreground mb-4">
-                      Add team owners during tournament setup
+                      {isAdmin ? "Add team owners during tournament setup" : "No teams available"}
                     </p>
-                    <Button onClick={() => setShowTeamManagement(true)}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Add Teams
-                    </Button>
+                    {isAdmin && (
+                      <Button onClick={() => setShowTeamManagement(true)}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Add Teams
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -337,10 +353,12 @@ const TournamentDetail = () => {
                     <CardTitle>All Players</CardTitle>
                     <CardDescription>Complete player database for this tournament</CardDescription>
                   </div>
-                  <Button onClick={() => setShowPlayerManagement(true)} variant="outline">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Players
-                  </Button>
+                  {isAdmin && (
+                    <Button onClick={() => setShowPlayerManagement(true)} variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Players
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -349,12 +367,14 @@ const TournamentDetail = () => {
                     <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-semibold mb-2">No Players Yet</h3>
                     <p className="text-muted-foreground mb-4">
-                      Add players during tournament setup or import them via Excel
+                      {isAdmin ? "Add players during tournament setup or import them via Excel" : "No players available"}
                     </p>
-                    <Button onClick={() => setShowPlayerManagement(true)}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Add Players
-                    </Button>
+                    {isAdmin && (
+                      <Button onClick={() => setShowPlayerManagement(true)}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Add Players
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -401,10 +421,12 @@ const TournamentDetail = () => {
                     <CardTitle>Matches Schedule</CardTitle>
                     <CardDescription>All matches in this tournament</CardDescription>
                   </div>
-                  <Button onClick={() => setShowMatchManagement(true)} variant="outline">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Matches
-                  </Button>
+                  {isAdmin && (
+                    <Button onClick={() => setShowMatchManagement(true)} variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Matches
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
