@@ -92,42 +92,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, adminCode?: string) => {
+    // Pass admin code in user metadata so the database trigger can check it
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
+        data: {
+          admin_code: adminCode || "", // Pass to trigger for role assignment
+        },
       },
     });
 
     if (error) {
       return { error: error as Error };
-    }
-
-    // If signup successful and admin code provided, assign admin role
-    if (data.user && adminCode === ADMIN_SECRET_CODE) {
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: data.user.id,
-          role: "super_admin",
-        });
-
-      if (roleError) {
-        console.error("Error assigning admin role:", roleError);
-      }
-    } else if (data.user) {
-      // Assign viewer role by default
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: data.user.id,
-          role: "viewer",
-        });
-
-      if (roleError) {
-        console.error("Error assigning viewer role:", roleError);
-      }
     }
 
     return { error: null };
