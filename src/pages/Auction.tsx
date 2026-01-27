@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useTeamOwners } from '@/hooks/useTeamOwners';
 import { useTournament } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
+import { useRealTeams } from '@/hooks/useRealTeams';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import AdminGuard from '@/components/AdminGuard';
@@ -13,6 +14,13 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +48,9 @@ import {
   Crown,
   ScrollText,
   Clock,
-  Undo2
+  Undo2,
+  Filter,
+  X
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +73,7 @@ const Auction = () => {
   const { players, isLoading: playersLoading, updatePlayer } = usePlayers(tournamentId);
   const { teamOwners, isLoading: ownersLoading } = useTeamOwners(tournamentId);
   const { categories, isLoading: categoriesLoading } = useCategories(tournamentId);
+  const { realTeams } = useRealTeams(tournamentId);
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
@@ -74,6 +85,15 @@ const Auction = () => {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [initialBudget, setInitialBudget] = useState<number>(0);
   const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState<number>(25);
+  
+  // Filter states for Unsold tab
+  const [unsoldRealTeamFilter, setUnsoldRealTeamFilter] = useState<string>('all');
+  const [unsoldCategoryFilter, setUnsoldCategoryFilter] = useState<string>('all');
+  
+  // Filter states for Sold tab
+  const [soldRealTeamFilter, setSoldRealTeamFilter] = useState<string>('all');
+  const [soldCategoryFilter, setSoldCategoryFilter] = useState<string>('all');
+  const [soldVirtualTeamFilter, setSoldVirtualTeamFilter] = useState<string>('all');
   
   // Celebration state
   const [showCelebration, setShowCelebration] = useState(false);
@@ -191,7 +211,17 @@ const Auction = () => {
         .eq('revoked', false)
         .order('timestamp', { ascending: false });
       
-      if (data && !error) {
+      if (error) {
+        console.error('Error fetching auction logs:', error);
+        toast({
+          title: "Error loading audit logs",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
         setAuctionLogs(data);
       }
     };
@@ -235,8 +265,34 @@ const Auction = () => {
     players: shuffledPlayers.filter(p => p.category === category.name)
   }));
 
-  const soldPlayers = players.filter(p => p.owner_id);
-  const unsoldPlayers = players.filter(p => !p.owner_id);
+  const allSoldPlayers = players.filter(p => p.owner_id);
+  const allUnsoldPlayers = players.filter(p => !p.owner_id);
+
+  // Filtered players for display with memoization
+  const filteredSoldPlayers = useMemo(() => {
+    let result = allSoldPlayers;
+    if (soldRealTeamFilter !== 'all') {
+      result = result.filter(p => p.real_team_id === soldRealTeamFilter);
+    }
+    if (soldCategoryFilter !== 'all') {
+      result = result.filter(p => p.category === soldCategoryFilter);
+    }
+    if (soldVirtualTeamFilter !== 'all') {
+      result = result.filter(p => p.owner_id === soldVirtualTeamFilter);
+    }
+    return result;
+  }, [allSoldPlayers, soldRealTeamFilter, soldCategoryFilter, soldVirtualTeamFilter]);
+
+  const filteredUnsoldPlayers = useMemo(() => {
+    let result = allUnsoldPlayers;
+    if (unsoldRealTeamFilter !== 'all') {
+      result = result.filter(p => p.real_team_id === unsoldRealTeamFilter);
+    }
+    if (unsoldCategoryFilter !== 'all') {
+      result = result.filter(p => p.category === unsoldCategoryFilter);
+    }
+    return result;
+  }, [allUnsoldPlayers, unsoldRealTeamFilter, unsoldCategoryFilter]);
 
   const currentCategory = playersByCategory[currentCategoryIndex];
   const currentCategoryPlayers = currentCategory?.players || [];
@@ -656,7 +712,7 @@ const Auction = () => {
     );
   }
 
-  const allPlayersAuctioned = unsoldPlayers.length === 0;
+  const allPlayersAuctioned = allUnsoldPlayers.length === 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -709,11 +765,11 @@ const Auction = () => {
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{soldPlayers.length} Sold</span>
+              <span className="text-sm font-medium">{allSoldPlayers.length} Sold</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{unsoldPlayers.length} Remaining</span>
+              <span className="text-sm font-medium">{allUnsoldPlayers.length} Remaining</span>
             </div>
           </div>
 
@@ -742,11 +798,11 @@ const Auction = () => {
             </TabsTrigger>
             <TabsTrigger value="sold" className="gap-2">
               <Trophy className="h-4 w-4" />
-              <span>Sold ({soldPlayers.length})</span>
+              <span>Sold ({allSoldPlayers.length})</span>
             </TabsTrigger>
             <TabsTrigger value="unsold" className="gap-2">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Unsold ({unsoldPlayers.length})</span>
+              <span className="hidden sm:inline">Unsold ({allUnsoldPlayers.length})</span>
             </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <ScrollText className="h-4 w-4" />
@@ -1213,8 +1269,67 @@ const Auction = () => {
           </TabsContent>
 
           <TabsContent value="sold">
+            {/* Sold Tab Filters */}
+            <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span>Filters:</span>
+              </div>
+              <Select value={soldRealTeamFilter} onValueChange={setSoldRealTeamFilter}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <SelectValue placeholder="Real Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {realTeams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={soldCategoryFilter} onValueChange={setSoldCategoryFilter}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={soldVirtualTeamFilter} onValueChange={setSoldVirtualTeamFilter}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Virtual Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Virtual Teams</SelectItem>
+                  {teamOwners.map(owner => (
+                    <SelectItem key={owner.id} value={owner.id}>{owner.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(soldRealTeamFilter !== 'all' || soldCategoryFilter !== 'all' || soldVirtualTeamFilter !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSoldRealTeamFilter('all');
+                    setSoldCategoryFilter('all');
+                    setSoldVirtualTeamFilter('all');
+                  }}
+                  className="h-9 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+              <Badge variant="secondary" className="ml-auto">
+                {filteredSoldPlayers.length} of {allSoldPlayers.length} players
+              </Badge>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {soldPlayers.map((player, idx) => (
+              {filteredSoldPlayers.map((player, idx) => (
                 <motion.div
                   key={player.id}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -1232,6 +1347,7 @@ const Auction = () => {
                     </div>
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p className="capitalize">{player.role}</p>
+                      <p className="text-xs">{player.real_teams?.name}</p>
                       <p className="font-bold text-lg text-primary">
                         ₹{formatCurrency(player.auction_price)}
                       </p>
@@ -1246,17 +1362,64 @@ const Auction = () => {
                   </Card>
                 </motion.div>
               ))}
-              {soldPlayers.length === 0 && (
+              {filteredSoldPlayers.length === 0 && (
                 <p className="text-muted-foreground col-span-full text-center py-12">
-                  No players sold yet
+                  {allSoldPlayers.length === 0 ? 'No players sold yet' : 'No players match the selected filters'}
                 </p>
               )}
             </div>
           </TabsContent>
 
           <TabsContent value="unsold">
+            {/* Unsold Tab Filters */}
+            <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span>Filters:</span>
+              </div>
+              <Select value={unsoldRealTeamFilter} onValueChange={setUnsoldRealTeamFilter}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <SelectValue placeholder="Real Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {realTeams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={unsoldCategoryFilter} onValueChange={setUnsoldCategoryFilter}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(unsoldRealTeamFilter !== 'all' || unsoldCategoryFilter !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setUnsoldRealTeamFilter('all');
+                    setUnsoldCategoryFilter('all');
+                  }}
+                  className="h-9 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+              <Badge variant="secondary" className="ml-auto">
+                {filteredUnsoldPlayers.length} of {allUnsoldPlayers.length} players
+              </Badge>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {unsoldPlayers.map((player, idx) => (
+              {filteredUnsoldPlayers.map((player, idx) => (
                 <motion.div
                   key={player.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -1279,9 +1442,9 @@ const Auction = () => {
                   </Card>
                 </motion.div>
               ))}
-              {unsoldPlayers.length === 0 && (
+              {filteredUnsoldPlayers.length === 0 && (
                 <p className="text-muted-foreground col-span-full text-center py-12">
-                  All players have been sold
+                  {allUnsoldPlayers.length === 0 ? 'All players have been sold' : 'No players match the selected filters'}
                 </p>
               )}
             </div>
