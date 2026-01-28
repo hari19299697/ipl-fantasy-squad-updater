@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2, Check, FileText, Eye } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Calendar, Loader2, Edit, Gavel, Settings, Trash2, Check, FileText, Eye, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +25,7 @@ import PlayerManagementModal from "@/components/PlayerManagementModal";
 import RealTeamManagementModal from "@/components/RealTeamManagementModal";
 import CategoryManagementModal from "@/components/CategoryManagementModal";
 import MatchManagementModal from "@/components/MatchManagementModal";
+import CloneTournamentModal from "@/components/CloneTournamentModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -49,6 +50,7 @@ const TournamentDetail = () => {
   const [showRealTeamManagement, setShowRealTeamManagement] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [showMatchManagement, setShowMatchManagement] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAuctionRuleDialog, setShowAuctionRuleDialog] = useState(false);
   const [selectedAuctionRuleId, setSelectedAuctionRuleId] = useState<string>("");
@@ -177,6 +179,16 @@ const TournamentDetail = () => {
                   {isAdmin ? <Users className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                   {isAdmin ? "All Players" : "View Players"}
                 </Button>
+                {isAdmin && (
+                  <Button
+                    onClick={() => setShowCloneModal(true)}
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Clone
+                  </Button>
+                )}
                 {isAdmin && (
                   <Button
                     onClick={() => setShowDeleteDialog(true)}
@@ -609,6 +621,13 @@ const TournamentDetail = () => {
           isOpen={showMatchManagement}
           onClose={() => setShowMatchManagement(false)}
           tournamentId={id || ""}
+        />
+
+        <CloneTournamentModal
+          isOpen={showCloneModal}
+          onClose={() => setShowCloneModal(false)}
+          tournamentId={id || ""}
+          tournamentName={tournament.name}
         />
 
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

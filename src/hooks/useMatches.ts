@@ -143,6 +143,33 @@ export const useMatches = (tournamentId: string | undefined) => {
     },
   });
 
+  // Delete all matches
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      if (!tournamentId) throw new Error("Tournament ID required");
+      const { error } = await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches', tournamentId] });
+      toast({
+        title: "Success",
+        description: "All matches deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     matches: matches || [],
     isLoading,
@@ -150,10 +177,12 @@ export const useMatches = (tournamentId: string | undefined) => {
     createMatch: createMutation.mutate,
     updateMatch: updateMutation.mutate,
     deleteMatch: deleteMutation.mutate,
+    deleteAllMatches: deleteAllMutation.mutate,
     bulkCreateMatches: bulkCreateMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isDeletingAll: deleteAllMutation.isPending,
     isBulkCreating: bulkCreateMutation.isPending,
   };
 };
