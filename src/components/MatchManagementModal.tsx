@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMatches } from "@/hooks/useMatches";
 import { useRealTeams } from "@/hooks/useRealTeams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Download, Upload, Trash2 } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Edit, X, Check, AlertTriangle } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 interface MatchManagementModalProps {
   isOpen: boolean;
@@ -19,9 +21,19 @@ interface MatchManagementModalProps {
 }
 
 const MatchManagementModal = ({ isOpen, onClose, tournamentId }: MatchManagementModalProps) => {
-  const { matches, bulkCreateMatches, deleteMatch } = useMatches(tournamentId);
+  const { matches, bulkCreateMatches, deleteMatch, deleteAllMatches, updateMatch, isDeletingAll } = useMatches(tournamentId);
   const { realTeams } = useRealTeams(tournamentId);
   const { toast } = useToast();
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    match_number: "",
+    team1_id: "",
+    team2_id: "",
+    venue: "",
+    match_date: "",
+    is_completed: false,
+  });
   const [newMatch, setNewMatch] = useState({
     match_number: "",
     team1_id: "",
@@ -46,6 +58,49 @@ const MatchManagementModal = ({ isOpen, onClose, tournamentId }: MatchManagement
     }]);
 
     setNewMatch({ match_number: "", team1_id: "", team2_id: "", venue: "", match_date: "" });
+  };
+
+  const handleStartEdit = (match: any) => {
+    setEditingMatchId(match.id);
+    setEditForm({
+      match_number: match.match_number.toString(),
+      team1_id: match.team1_id || "",
+      team2_id: match.team2_id || "",
+      venue: match.venue || "",
+      match_date: format(new Date(match.match_date), "yyyy-MM-dd'T'HH:mm"),
+      is_completed: match.is_completed || false,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMatchId(null);
+    setEditForm({ match_number: "", team1_id: "", team2_id: "", venue: "", match_date: "", is_completed: false });
+  };
+
+  const handleSaveEdit = (matchId: string) => {
+    if (!editForm.match_number || !editForm.team1_id || !editForm.team2_id || !editForm.match_date) {
+      toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+
+    updateMatch({
+      id: matchId,
+      updates: {
+        match_number: parseInt(editForm.match_number),
+        team1_id: editForm.team1_id,
+        team2_id: editForm.team2_id,
+        venue: editForm.venue || null,
+        match_date: new Date(editForm.match_date).toISOString(),
+        is_completed: editForm.is_completed,
+      },
+    });
+
+    setEditingMatchId(null);
+  };
+
+  const handleDeleteAllMatches = () => {
+    deleteAllMatches();
+    setShowDeleteAllDialog(false);
   };
 
   const handleExport = () => {
@@ -104,139 +159,273 @@ const MatchManagementModal = ({ isOpen, onClose, tournamentId }: MatchManagement
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Manage Matches</DialogTitle>
-          <DialogDescription>Add or import matches for this tournament</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Matches</DialogTitle>
+            <DialogDescription>Add, edit, or import matches for this tournament</DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Add New Match */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add New Match
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Match Number *</Label>
-                <Input
-                  type="number"
-                  value={newMatch.match_number}
-                  onChange={(e) => setNewMatch({ ...newMatch, match_number: e.target.value })}
-                  placeholder="1"
-                />
+          <div className="space-y-4">
+            {/* Delete All Button */}
+            {matches.length > 0 && (
+              <div className="flex justify-end">
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  disabled={isDeletingAll}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete All Matches ({matches.length})
+                </Button>
               </div>
-              <div>
-                <Label>Team 1 *</Label>
-                <Select value={newMatch.team1_id} onValueChange={(value) => setNewMatch({ ...newMatch, team1_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {realTeams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.short_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            )}
+
+            {/* Add New Match */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Add New Match
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Match Number *</Label>
+                  <Input
+                    type="number"
+                    value={newMatch.match_number}
+                    onChange={(e) => setNewMatch({ ...newMatch, match_number: e.target.value })}
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <Label>Team 1 *</Label>
+                  <Select value={newMatch.team1_id} onValueChange={(value) => setNewMatch({ ...newMatch, team1_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {realTeams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.short_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Team 2 *</Label>
+                  <Select value={newMatch.team2_id} onValueChange={(value) => setNewMatch({ ...newMatch, team2_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {realTeams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.short_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Venue</Label>
+                  <Input
+                    value={newMatch.venue}
+                    onChange={(e) => setNewMatch({ ...newMatch, venue: e.target.value })}
+                    placeholder="Stadium name"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label>Match Date *</Label>
+                  <Input
+                    type="datetime-local"
+                    value={newMatch.match_date}
+                    onChange={(e) => setNewMatch({ ...newMatch, match_date: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <Label>Team 2 *</Label>
-                <Select value={newMatch.team2_id} onValueChange={(value) => setNewMatch({ ...newMatch, team2_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {realTeams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.short_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Venue</Label>
-                <Input
-                  value={newMatch.venue}
-                  onChange={(e) => setNewMatch({ ...newMatch, venue: e.target.value })}
-                  placeholder="Stadium name"
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Match Date *</Label>
-                <Input
-                  type="datetime-local"
-                  value={newMatch.match_date}
-                  onChange={(e) => setNewMatch({ ...newMatch, match_date: e.target.value })}
-                />
-              </div>
+              <Button onClick={handleAddMatch} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Match
+              </Button>
             </div>
-            <Button onClick={handleAddMatch} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Match
-            </Button>
-          </div>
 
-          {/* Import/Export */}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport} className="flex-1">
-              <Download className="h-4 w-4 mr-2" />
-              Export to Excel
-            </Button>
-            <Button variant="outline" className="flex-1" asChild>
-              <label>
-                <Upload className="h-4 w-4 mr-2" />
-                Import from Excel
-                <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
-              </label>
-            </Button>
-          </div>
+            {/* Import/Export */}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExport} className="flex-1">
+                <Download className="h-4 w-4 mr-2" />
+                Export to Excel
+              </Button>
+              <Button variant="outline" className="flex-1" asChild>
+                <label>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import from Excel
+                  <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+                </label>
+              </Button>
+            </div>
 
-          {/* Matches List */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Match #</TableHead>
-                  <TableHead>Teams</TableHead>
-                  <TableHead>Venue</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {matches.map((match) => (
-                  <TableRow key={match.id}>
-                    <TableCell className="font-medium">Match {match.match_number}</TableCell>
-                    <TableCell>
-                      {match.team1?.short_name || "TBD"} vs {match.team2?.short_name || "TBD"}
-                    </TableCell>
-                    <TableCell>{match.venue || "—"}</TableCell>
-                    <TableCell>{format(new Date(match.match_date), "MMM dd, yyyy")}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => deleteMatch(match.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {matches.length === 0 && (
+            {/* Matches List */}
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No matches added yet
-                    </TableCell>
+                    <TableHead>Match #</TableHead>
+                    <TableHead>Teams</TableHead>
+                    <TableHead>Venue</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {matches.map((match) => (
+                    <TableRow key={match.id}>
+                      {editingMatchId === match.id ? (
+                        <>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={editForm.match_number}
+                              onChange={(e) => setEditForm({ ...editForm, match_number: e.target.value })}
+                              className="w-16"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Select value={editForm.team1_id} onValueChange={(value) => setEditForm({ ...editForm, team1_id: value })}>
+                                <SelectTrigger className="w-20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {realTeams.map((team) => (
+                                    <SelectItem key={team.id} value={team.id}>
+                                      {team.short_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <span className="flex items-center">vs</span>
+                              <Select value={editForm.team2_id} onValueChange={(value) => setEditForm({ ...editForm, team2_id: value })}>
+                                <SelectTrigger className="w-20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {realTeams.map((team) => (
+                                    <SelectItem key={team.id} value={team.id}>
+                                      {team.short_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={editForm.venue}
+                              onChange={(e) => setEditForm({ ...editForm, venue: e.target.value })}
+                              className="w-24"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="datetime-local"
+                              value={editForm.match_date}
+                              onChange={(e) => setEditForm({ ...editForm, match_date: e.target.value })}
+                              className="w-44"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select 
+                              value={editForm.is_completed ? "completed" : "upcoming"} 
+                              onValueChange={(value) => setEditForm({ ...editForm, is_completed: value === "completed" })}
+                            >
+                              <SelectTrigger className="w-28">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="upcoming">Upcoming</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" onClick={() => handleSaveEdit(match.id)}>
+                                <Check className="h-4 w-4 text-primary" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                                <X className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell className="font-medium">Match {match.match_number}</TableCell>
+                          <TableCell>
+                            {match.team1?.short_name || "TBD"} vs {match.team2?.short_name || "TBD"}
+                          </TableCell>
+                          <TableCell>{match.venue || "—"}</TableCell>
+                          <TableCell>{format(new Date(match.match_date), "MMM dd, yyyy HH:mm")}</TableCell>
+                          <TableCell>
+                            <Badge variant={match.is_completed ? "default" : "secondary"}>
+                              {match.is_completed ? "Completed" : "Upcoming"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" onClick={() => handleStartEdit(match)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => deleteMatch(match.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
+                  {matches.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No matches added yet
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete All Matches
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all {matches.length} matches? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAllMatches}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
