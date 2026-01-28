@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTournament, useTournaments } from "@/hooks/useTournaments";
 import { usePlayers } from "@/hooks/usePlayers";
@@ -74,6 +74,20 @@ const TournamentDetail = () => {
   };
 
   const appliedAuctionRule = tournamentAuctionRule?.auction_rules;
+
+  // Get max players from auction rules
+  const maxPlayers = appliedAuctionRule?.max_players_per_team || undefined;
+
+  // Calculate player count per owner
+  const playerCountByOwner = useMemo(() => {
+    const counts: Record<string, number> = {};
+    players.forEach(player => {
+      if (player.owner_id) {
+        counts[player.owner_id] = (counts[player.owner_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [players]);
 
   const isLoading = loadingTournament || loadingPlayers || loadingOwners || loadingMatches;
 
@@ -267,7 +281,12 @@ const TournamentDetail = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sortedTeams.map((team, index) => (
                   <div key={team.id} onClick={() => handleTeamClick(team)} className="cursor-pointer">
-                    <TeamCard team={team} rank={index + 1} />
+                    <TeamCard 
+                      team={team} 
+                      rank={index + 1} 
+                      playerCount={playerCountByOwner[team.id] || 0}
+                      maxPlayers={maxPlayers}
+                    />
                   </div>
                 ))}
               </div>
@@ -590,6 +609,8 @@ const TournamentDetail = () => {
             ownerId={selectedTeam.id}
             ownerName={selectedTeam.name}
             players={getTeamPlayers(selectedTeam.id)}
+            team={selectedTeam}
+            maxPlayers={maxPlayers}
           />
         )}
 
