@@ -1,8 +1,9 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTournamentContext } from "@/contexts/TournamentContext";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useTeamOwners } from "@/hooks/useTeamOwners";
+import { useTournamentAuctionRules } from "@/hooks/useTournamentAuctionRules";
 import TeamCard from "./TeamCard";
 import TeamSquadModal from "./TeamSquadModal";
 import ExportButton from "./ExportButton";
@@ -17,8 +18,23 @@ const Dashboard = () => {
   const { selectedTournamentId } = useTournamentContext();
   const { teamOwners, isLoading: loadingOwners } = useTeamOwners(selectedTournamentId || undefined);
   const { players, isLoading: loadingPlayers } = usePlayers(selectedTournamentId || undefined);
+  const { tournamentAuctionRule } = useTournamentAuctionRules(selectedTournamentId || undefined);
   const [selectedTeam, setSelectedTeam] = useState<TeamOwner | null>(null);
   const [showSquadModal, setShowSquadModal] = useState(false);
+
+  // Get max players from auction rules
+  const maxPlayers = tournamentAuctionRule?.auction_rules?.max_players_per_team || undefined;
+
+  // Calculate player count per owner
+  const playerCountByOwner = useMemo(() => {
+    const counts: Record<string, number> = {};
+    players.forEach(player => {
+      if (player.owner_id) {
+        counts[player.owner_id] = (counts[player.owner_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [players]);
 
   // Sort teams by total points (descending)
   const sortedTeams = [...teamOwners].sort((a, b) => b.total_points - a.total_points);
@@ -69,7 +85,12 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sortedTeams.map((team, index) => (
               <div key={team.id} onClick={() => handleTeamClick(team)} className="cursor-pointer">
-                <TeamCard team={team} rank={index + 1} />
+                <TeamCard 
+                  team={team} 
+                  rank={index + 1} 
+                  playerCount={playerCountByOwner[team.id] || 0}
+                  maxPlayers={maxPlayers}
+                />
               </div>
             ))}
           </div>
