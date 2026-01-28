@@ -1,15 +1,17 @@
 
 import type { Database } from "@/integrations/supabase/types";
-import { Trophy, Users } from "lucide-react";
+import { Trophy, Users, Wallet } from "lucide-react";
 
 type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
 
 interface TeamCardProps {
   team: TeamOwner;
   rank: number;
+  playerCount?: number;
+  maxPlayers?: number;
 }
 
-const TeamCard = ({ team, rank }: TeamCardProps) => {
+const TeamCard = ({ team, rank, playerCount = 0, maxPlayers }: TeamCardProps) => {
   return (
     <div className="bg-card rounded-lg shadow-md overflow-hidden border transition-all hover:shadow-lg">
       <div 
@@ -30,16 +32,33 @@ const TeamCard = ({ team, rank }: TeamCardProps) => {
           </span>
         </div>
         
-        <div className="grid grid-cols-2 gap-2 mt-4">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="h-4 w-4 text-primary" />
+        <div className="grid grid-cols-1 gap-3 mt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="h-4 w-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Points</span>
+            </div>
             <span className="text-lg font-semibold text-foreground">{team.total_points}</span>
-            <span className="text-xs text-muted-foreground">pts</span>
           </div>
           
-          <div className="flex items-center gap-1.5 justify-end">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Squad</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Players</span>
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              {playerCount}{maxPlayers ? ` / ${maxPlayers}` : ''}
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Wallet</span>
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              ₹{team.budget_remaining?.toLocaleString() || 0}
+            </span>
           </div>
         </div>
       </div>

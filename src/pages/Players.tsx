@@ -4,6 +4,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useTournament } from '@/hooks/useTournaments';
 import { useTeamOwners } from '@/hooks/useTeamOwners';
 import { useRealTeams } from '@/hooks/useRealTeams';
+import { useCategories } from '@/hooks/useCategories';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { ArrowLeft, Trophy, Filter, X, Edit, Check } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Slider } from '@/components/ui/slider';
 import {
   Table,
   TableBody,
@@ -30,16 +32,32 @@ const Players = () => {
   const { players, isLoading: playersLoading, updatePlayer } = usePlayers(tournamentId);
   const { teamOwners } = useTeamOwners(tournamentId);
   const { realTeams } = useRealTeams(tournamentId);
+  const { categories } = useCategories(tournamentId);
 
   // Filters
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [realTeamFilter, setRealTeamFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [minPoints, setMinPoints] = useState<number>(0);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
 
   // Editing state
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editOwnerId, setEditOwnerId] = useState<string | null>(null);
   const [editAuctionPrice, setEditAuctionPrice] = useState<string>("");
+
+  // Get unique roles from players
+  const uniqueRoles = useMemo(() => {
+    const roles = new Set(players.map(p => p.role?.toLowerCase()).filter(Boolean));
+    return Array.from(roles);
+  }, [players]);
+
+  // Calculate max base price for slider
+  const maxBasePrice = useMemo(() => {
+    return Math.max(...players.map(p => p.base_price || 0), 0);
+  }, [players]);
 
   const filteredPlayers = useMemo(() => {
     return players.filter(player => {
@@ -47,9 +65,13 @@ const Players = () => {
       const matchesOwner = ownerFilter === "all" || 
         (ownerFilter === "unsold" ? !player.owner_id : player.owner_id === ownerFilter);
       const matchesRealTeam = realTeamFilter === "all" || player.real_team_id === realTeamFilter;
-      return matchesSearch && matchesOwner && matchesRealTeam;
+      const matchesRole = roleFilter === "all" || player.role?.toLowerCase() === roleFilter;
+      const matchesCategory = categoryFilter === "all" || player.category === categoryFilter;
+      const matchesPoints = (player.total_points || 0) >= minPoints;
+      const matchesPrice = maxPrice === null || (player.base_price || 0) <= maxPrice;
+      return matchesSearch && matchesOwner && matchesRealTeam && matchesRole && matchesCategory && matchesPoints && matchesPrice;
     });
-  }, [players, searchTerm, ownerFilter, realTeamFilter]);
+  }, [players, searchTerm, ownerFilter, realTeamFilter, roleFilter, categoryFilter, minPoints, maxPrice]);
 
   // Sort players by total points
   const sortedPlayers = [...filteredPlayers].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
@@ -99,10 +121,14 @@ const Players = () => {
   const clearFilters = () => {
     setOwnerFilter("all");
     setRealTeamFilter("all");
+    setRoleFilter("all");
+    setCategoryFilter("all");
     setSearchTerm("");
+    setMinPoints(0);
+    setMaxPrice(null);
   };
 
-  const hasActiveFilters = ownerFilter !== "all" || realTeamFilter !== "all" || searchTerm !== "";
+  const hasActiveFilters = ownerFilter !== "all" || realTeamFilter !== "all" || roleFilter !== "all" || categoryFilter !== "all" || searchTerm !== "" || minPoints > 0 || maxPrice !== null;
 
   if (tournamentLoading || playersLoading) {
     return <div className="p-8">Loading...</div>;
@@ -131,57 +157,117 @@ const Players = () => {
 
         {/* Filters */}
         <Card className="p-4 mb-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filters:</span>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filters:</span>
+              </div>
+              
+              <Input
+                placeholder="Search player name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-48"
+              />
+
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Positions</SelectItem>
+                  {uniqueRoles.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={realTeamFilter} onValueChange={setRealTeamFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All Real Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Real Teams</SelectItem>
+                  {realTeams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.short_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Players</SelectItem>
+                  <SelectItem value="unsold">Unsold Only</SelectItem>
+                  {teamOwners.map((owner) => (
+                    <SelectItem key={owner.id} value={owner.id}>
+                      {owner.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
             </div>
-            
-            <Input
-              placeholder="Search player name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-48"
-            />
 
-            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Owners" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Owners</SelectItem>
-                <SelectItem value="unsold">Unsold</SelectItem>
-                {teamOwners.map((owner) => (
-                  <SelectItem key={owner.id} value={owner.id}>
-                    {owner.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Advanced filters row */}
+            <div className="flex flex-wrap items-center gap-6 pt-2 border-t">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Min Points:</span>
+                <Input
+                  type="number"
+                  value={minPoints}
+                  onChange={(e) => setMinPoints(parseInt(e.target.value) || 0)}
+                  className="w-20"
+                  min={0}
+                />
+              </div>
 
-            <Select value={realTeamFilter} onValueChange={setRealTeamFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Real Teams" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Real Teams</SelectItem>
-                {realTeams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.short_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {maxBasePrice > 0 && (
+                <div className="flex items-center gap-3 flex-1 max-w-xs">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Max Price:</span>
+                  <Slider
+                    value={[maxPrice ?? maxBasePrice]}
+                    onValueChange={(val) => setMaxPrice(val[0] === maxBasePrice ? null : val[0])}
+                    max={maxBasePrice}
+                    step={1000}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-medium w-24">
+                    {maxPrice !== null ? `₹${maxPrice.toLocaleString()}` : 'Any'}
+                  </span>
+                </div>
+              )}
 
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
-            )}
-
-            <div className="ml-auto text-sm text-muted-foreground">
-              Showing {sortedPlayers.length} of {players.length} players
+              <div className="ml-auto text-sm text-muted-foreground">
+                Showing {sortedPlayers.length} of {players.length} players
+              </div>
             </div>
           </div>
         </Card>
