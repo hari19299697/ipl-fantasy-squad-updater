@@ -1,8 +1,7 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { Wallet, Users, Trophy } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Player = Database['public']['Tables']['players']['Row'] & {
@@ -10,27 +9,28 @@ type Player = Database['public']['Tables']['players']['Row'] & {
   team_owners: Database['public']['Tables']['team_owners']['Row'] | null;
 };
 
+type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
+
 interface TeamSquadModalProps {
   isOpen: boolean;
   onClose: () => void;
   ownerId: string;
   ownerName: string;
   players: Player[];
+  team?: TeamOwner | null;
+  maxPlayers?: number;
 }
 
-const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players }: TeamSquadModalProps) => {
-  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
+const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, maxPlayers }: TeamSquadModalProps) => {
+  // Sort players by auction price (descending), then by total points
+  const sortedPlayers = [...players].sort((a, b) => {
+    const priceA = a.auction_price || 0;
+    const priceB = b.auction_price || 0;
+    if (priceB !== priceA) return priceB - priceA;
+    return (b.total_points || 0) - (a.total_points || 0);
+  });
 
-  // Sort players by total points (descending)
-  const sortedPlayers = [...players].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
-
-  const togglePlayerExpand = (playerId: string) => {
-    if (expandedPlayer === playerId) {
-      setExpandedPlayer(null);
-    } else {
-      setExpandedPlayer(playerId);
-    }
-  };
+  const totalSpent = players.reduce((sum, p) => sum + (p.auction_price || 0), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -39,39 +39,88 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players }: TeamSq
           <DialogTitle className="text-2xl font-bold">{ownerName}'s Squad</DialogTitle>
         </DialogHeader>
         
+        {/* Top Section - Team Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-b">
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+            <Wallet className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">Wallet Balance</p>
+              <p className="text-lg font-bold">₹{team?.budget_remaining?.toLocaleString() || 0}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+            <Users className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">Players Purchased</p>
+              <p className="text-lg font-bold">
+                {players.length}{maxPlayers ? ` / ${maxPlayers}` : ''}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+            <Trophy className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">Total Points</p>
+              <p className="text-lg font-bold">{team?.total_points || 0}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+            <Wallet className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Amount Spent</p>
+              <p className="text-lg font-bold">₹{totalSpent.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Players List */}
         <div className="mt-4">
-          <h3 className="font-semibold text-lg mb-3">Squad Members (sorted by total points)</h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Player</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead className="text-right">Total Points</TableHead>
-                <TableHead className="text-center">Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedPlayers.map((player) => (
-                <TableRow 
-                  key={player.id} 
-                  className="group hover:bg-muted/50"
-                >
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{player.name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="capitalize">{player.role.replace('_', ' ')}</TableCell>
-                  <TableCell>{player.real_teams?.short_name || 'N/A'}</TableCell>
-                  <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
-                  <TableCell className="text-center">
-                    <ChevronDown className="h-5 w-5 inline-block text-muted-foreground" />
-                  </TableCell>
+          <h3 className="font-semibold text-lg mb-3">Squad Members ({players.length} players)</h3>
+          {sortedPlayers.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No players purchased yet</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Player</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead className="text-right">Base Price</TableHead>
+                  <TableHead className="text-right">Purchased At</TableHead>
+                  <TableHead className="text-right">Points</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sortedPlayers.map((player) => (
+                  <TableRow 
+                    key={player.id} 
+                    className="group hover:bg-muted/50"
+                  >
+                    <TableCell>
+                      <div className="font-medium">{player.name}</div>
+                      {player.category && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {player.category}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="capitalize">{player.role.replace('_', ' ')}</TableCell>
+                    <TableCell>{player.real_teams?.short_name || 'N/A'}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      ₹{(player.base_price || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-primary">
+                      ₹{(player.auction_price || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </DialogContent>
     </Dialog>

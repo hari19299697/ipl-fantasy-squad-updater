@@ -103,6 +103,8 @@ const Dashboard = () => {
             ownerId={selectedTeam.id}
             ownerName={selectedTeam.name}
             players={getTeamPlayers(selectedTeam.id)}
+            team={selectedTeam}
+            maxPlayers={maxPlayers}
           />
         )}
       </div>
