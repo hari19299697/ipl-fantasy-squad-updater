@@ -262,6 +262,11 @@ serve(async (req) => {
     // Extract player fantasy data
     const fantasyPlayers: FantasyPlayer[] = data?.response?.comp_Fantasy_record || [];
     
+    // Log first player to debug field names
+    if (fantasyPlayers.length > 0) {
+      console.log(`Sample player data: ${JSON.stringify(fantasyPlayers[0])}`);
+    }
+    
     if (fantasyPlayers.length === 0) {
       return new Response(
         JSON.stringify({ success: true, data: [], message: 'No fantasy data available for this match' }),
@@ -325,11 +330,12 @@ serve(async (req) => {
           }
         }
 
-        // IMPORTANT: Use 'point' field for match-specific points, NOT 'total_point' (which is season total)
-        // Also check if player is in playing XI - if not, set points to 0
-        const isPlaying = apiPlayer.playing11 === '1' || apiPlayer.starting11 !== '0';
+        // Use 'point' field for match-specific points
+        // The 'starting11' field contains bonus points for being in starting XI (e.g., "4")
+        // If starting11 > 0, the player played. If point > 0, they participated.
+        // Simply use the point field directly - the API already handles who played
         const matchPoints = parseInt(apiPlayer.point) || 0;
-        const points = isPlaying ? matchPoints : 0;
+        const points = matchPoints;
         
         if (matchedPlayer) {
           matchResults.push({
@@ -358,8 +364,6 @@ serve(async (req) => {
               directRunouts: parseInt(apiPlayer.directrunout) || 0,
               lbwBowled: parseInt(apiPlayer.bonusbowedlbw) || 0,
               starting11Points: parseInt(apiPlayer.starting11) || 0,
-              isPlaying: isPlaying,
-              rawMatchPoints: matchPoints,
               apiPlayerName: apiPlayer.name,
               apiTeam: apiPlayer.team_title
             }
@@ -471,8 +475,8 @@ serve(async (req) => {
           name: p.name,
           shortName: p.player_short_name,
           team: p.team_title,
-          points: parseInt(p.point) || 0,  // Use match-specific 'point' field
-          isPlaying: p.playing11 === '1' || p.starting11 !== '0'
+          points: parseInt(p.point) || 0,
+          starting11Points: parseInt(p.starting11) || 0
         }))
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
