@@ -4,9 +4,22 @@ import { Badge } from "./ui/badge";
 import { Wallet, Users, Trophy } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
+// Use a flexible type that works with both team_owners and team_owners_public views
+type TeamOwnerBase = {
+  id: string | null;
+  name: string | null;
+  short_name: string | null;
+  color: string | null;
+  total_points: number | null;
+  tournament_id: string | null;
+  created_at: string | null;
+  budget_remaining?: number | null;
+  user_id?: string | null;
+};
+
 type Player = Database['public']['Tables']['players']['Row'] & {
   real_teams: Database['public']['Tables']['real_teams']['Row'] | null;
-  team_owners: Database['public']['Tables']['team_owners']['Row'] | null;
+  team_owners: TeamOwnerBase | null;
 };
 
 type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
