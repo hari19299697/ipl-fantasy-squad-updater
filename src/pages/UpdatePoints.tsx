@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useTournament } from '@/hooks/useTournaments';
 import { useToast } from '@/hooks/use-toast';
+import { useFantasyPoints } from '@/hooks/useFantasyPoints';
 import AdminGuard from '@/components/AdminGuard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Download, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
@@ -17,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Match {
   id: string;
@@ -25,6 +34,7 @@ interface Match {
   venue: string;
   team1_id: string;
   team2_id: string;
+  external_match_id: string | null;
   team1: { name: string };
   team2: { name: string };
 }
@@ -40,6 +50,10 @@ const UpdatePoints = () => {
   const [selectedMatch, setSelectedMatch] = useState<string>('');
   const [playerPoints, setPlayerPoints] = useState<{ [key: string]: string }>({});
   const [saving, setSaving] = useState(false);
+  const [externalIdDialog, setExternalIdDialog] = useState(false);
+  const [externalMatchId, setExternalMatchId] = useState('');
+  
+  const { fetchFantasyPoints, isLoading: fetchingPoints, data: fantasyData } = useFantasyPoints();
 
   useEffect(() => {
     if (tournamentId) {
@@ -50,8 +64,15 @@ const UpdatePoints = () => {
   useEffect(() => {
     if (selectedMatch) {
       fetchExistingPoints();
+      // Pre-fill external match ID if available
+      const match = matches.find(m => m.id === selectedMatch);
+      if (match?.external_match_id) {
+        setExternalMatchId(match.external_match_id);
+      } else {
+        setExternalMatchId('');
+      }
     }
-  }, [selectedMatch]);
+  }, [selectedMatch, matches]);
 
   const fetchMatches = async () => {
     const { data, error } = await supabase
@@ -89,6 +110,39 @@ const UpdatePoints = () => {
       pointsMap[p.player_id] = p.points.toString();
     });
     setPlayerPoints(pointsMap);
+  };
+
+  const handleFetchFromAPI = () => {
+    if (!externalMatchId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter the external match ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    fetchFantasyPoints(
+      {
+        externalMatchId: externalMatchId.trim(),
+        matchId: selectedMatch,
+        tournamentId: tournamentId,
+        saveToDb: true,
+      },
+      {
+        onSuccess: async () => {
+          // Save the external match ID for future use
+          await supabase
+            .from('matches')
+            .update({ external_match_id: externalMatchId.trim() })
+            .eq('id', selectedMatch);
+          
+          setExternalIdDialog(false);
+          fetchMatches(); // Refresh matches to get updated external_match_id
+          fetchExistingPoints(); // Refresh points
+        }
+      }
+    );
   };
 
   const handleSave = async () => {
@@ -252,17 +306,40 @@ const UpdatePoints = () => {
         {selectedMatch && selectedMatchData && (
           <>
             <Card className="p-4 sm:p-6 mb-4 sm:mb-6 bg-primary/5">
-              <h3 className="font-semibold mb-2 text-sm sm:text-base">
-                Match {selectedMatchData.match_number}
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {selectedMatchData.team1.name} vs {selectedMatchData.team2.name}
-              </p>
-              {selectedMatchData.venue && (
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Venue: {selectedMatchData.venue}
-                </p>
-              )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold mb-1 text-sm sm:text-base">
+                    Match {selectedMatchData.match_number}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {selectedMatchData.team1.name} vs {selectedMatchData.team2.name}
+                  </p>
+                  {selectedMatchData.venue && (
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Venue: {selectedMatchData.venue}
+                    </p>
+                  )}
+                  {selectedMatchData.external_match_id && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      API ID: {selectedMatchData.external_match_id}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExternalIdDialog(true)}
+                  disabled={fetchingPoints}
+                  className="w-full sm:w-auto"
+                >
+                  {fetchingPoints ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {fetchingPoints ? 'Fetching...' : 'Fetch from API'}
+                </Button>
+              </div>
             </Card>
 
             <Card className="p-4 sm:p-6">
@@ -298,7 +375,20 @@ const UpdatePoints = () => {
                 ))}
               </div>
 
-              <div className="mt-4 sm:mt-6 flex justify-end">
+              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setExternalIdDialog(true)}
+                  disabled={fetchingPoints}
+                  className="w-full sm:w-auto"
+                >
+                  {fetchingPoints ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {fetchingPoints ? 'Fetching...' : 'Fetch from API'}
+                </Button>
                 <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? 'Saving...' : 'Save Points'}
@@ -307,6 +397,50 @@ const UpdatePoints = () => {
             </Card>
           </>
         )}
+
+        {/* External Match ID Dialog */}
+        <Dialog open={externalIdDialog} onOpenChange={setExternalIdDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Fetch Fantasy Points</DialogTitle>
+              <DialogDescription>
+                Enter the external match ID from the cricket API to fetch fantasy points automatically.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="externalId">External Match ID</Label>
+                <Input
+                  id="externalId"
+                  placeholder="e.g., 87014"
+                  value={externalMatchId}
+                  onChange={(e) => setExternalMatchId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  You can find this ID from the cricket-live-line API for the specific match.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setExternalIdDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleFetchFromAPI} disabled={fetchingPoints || !externalMatchId.trim()}>
+                {fetchingPoints ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Fetching...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Fetch & Save Points
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
