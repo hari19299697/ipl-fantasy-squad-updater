@@ -31,6 +31,24 @@ import type { Database } from "@/integrations/supabase/types";
 
 type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
 
+// Flexible Player type that works with team_owners_public view
+type TeamOwnerBase = {
+  id: string | null;
+  name: string | null;
+  short_name: string | null;
+  color: string | null;
+  total_points: number | null;
+  tournament_id: string | null;
+  created_at: string | null;
+  budget_remaining?: number | null;
+  user_id?: string | null;
+};
+
+type Player = Database['public']['Tables']['players']['Row'] & {
+  real_teams: Database['public']['Tables']['real_teams']['Row'] | null;
+  team_owners: TeamOwnerBase | null;
+};
+
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -93,8 +111,8 @@ const TournamentDetail = () => {
 
   const sortedTeams = [...teamOwners].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
   
-  const getTeamPlayers = (ownerId: string) => {
-    return players.filter(player => player.owner_id === ownerId);
+  const getTeamPlayers = (ownerId: string): Player[] => {
+    return players.filter(player => player.owner_id === ownerId) as Player[];
   };
 
   const handleTeamClick = (team: TeamOwner) => {
