@@ -131,9 +131,32 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      const apiMatches: APIMatch[] = data?.response?.items || [];
+      const apiMatchesRaw = data?.response?.items || [];
+      
+      // Log first match to see structure
+      if (apiMatchesRaw.length > 0) {
+        console.log(`Sample API match structure: ${JSON.stringify(apiMatchesRaw[0])}`);
+      }
+
+      // Map API response - the API uses 'title' field like "Team A vs Team B"
+      const apiMatches: APIMatch[] = apiMatchesRaw.map((match: any) => {
+        // Parse title to extract team names (format: "Team A vs Team B")
+        const title = match.title || match.match_name || '';
+        const teams = title.split(' vs ');
+        return {
+          match_id: String(match.match_id),
+          match_name: title,
+          team_a: teams[0]?.trim() || '',
+          team_b: teams[1]?.trim() || '',
+          match_date: match.match_date || match.date_start || '',
+          match_status: match.match_status || match.status || ''
+        };
+      });
 
       console.log(`Found ${apiMatches.length} matches from API`);
+      if (apiMatches.length > 0) {
+        console.log(`Parsed teams: "${apiMatches[0].team_a}" vs "${apiMatches[0].team_b}"`);
+      }
 
       // Fetch DB matches with team names
       const { data: dbMatches, error: dbError } = await supabase
