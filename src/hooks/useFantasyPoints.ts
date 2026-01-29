@@ -8,6 +8,7 @@ interface MatchResult {
   points: number;
   matched: boolean;
   apiPlayerName: string;
+  isPlayingXI?: boolean;
 }
 
 interface FantasyPointsResponse {

@@ -36,6 +36,7 @@ interface MatchResult {
   points: number;
   matched: boolean;
   apiPlayerName: string;
+  isPlayingXI?: boolean;
 }
 
 interface APIMatch {
@@ -323,42 +324,52 @@ serve(async (req) => {
       // Match players using name similarity
       const matchResults: MatchResult[] = [];
       const pointsToInsert: { match_id: string; player_id: string; points: number; details: object }[] = [];
+      
+      // Track which players are in the playing XI for this match
+      const playingXIPlayerIds: string[] = [];
 
       // Use matchPlayers (from playing11) which has actual match-specific points
       for (const apiPlayer of matchPlayers) {
-        // Normalize API name: lowercase, trim, and collapse multiple spaces
-        const apiName = apiPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
+        // Normalize API name: lowercase, trim, and collapse ALL whitespace
+        const apiName = apiPlayer.name.toLowerCase().trim().replace(/\s+/g, '');
+        const apiNameWithSpaces = apiPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
         
         // Find matching player in DB using multiple strategies
         let matchedPlayer = null;
         let bestMatchScore = 0;
         
         for (const dbPlayer of dbPlayers || []) {
-          // Normalize DB name the same way
-          const dbName = dbPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
+          // Normalize DB name the same way - remove ALL spaces for comparison
+          const dbNameNoSpaces = dbPlayer.name.toLowerCase().trim().replace(/\s+/g, '');
+          const dbNameWithSpaces = dbPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
           let matchScore = 0;
           
-          // Strategy 1: Exact match (highest priority)
-          if (dbName === apiName) {
+          // Strategy 1: Exact match after removing all spaces (handles "Josh Brown " vs "Josh Brown")
+          if (dbNameNoSpaces === apiName) {
             matchedPlayer = dbPlayer;
             break; // Perfect match, stop looking
           }
           
-          // Strategy 2: Full name containment (handles variations like "Josh Brown" vs "Josh Brown ")
-          // One must contain the other and be at least 80% of the length
-          if (apiName.length >= 5 && dbName.length >= 5) {
-            if (dbName.startsWith(apiName) || apiName.startsWith(dbName)) {
-              const minLen = Math.min(apiName.length, dbName.length);
-              const maxLen = Math.max(apiName.length, dbName.length);
-              if (minLen / maxLen > 0.8) {
-                matchScore = 150;
+          // Strategy 2: Exact match with normalized spaces
+          if (dbNameWithSpaces === apiNameWithSpaces) {
+            matchedPlayer = dbPlayer;
+            break;
+          }
+          
+          // Strategy 3: Full name containment after removing spaces
+          if (apiName.length >= 5 && dbNameNoSpaces.length >= 5) {
+            if (dbNameNoSpaces.startsWith(apiName) || apiName.startsWith(dbNameNoSpaces)) {
+              const minLen = Math.min(apiName.length, dbNameNoSpaces.length);
+              const maxLen = Math.max(apiName.length, dbNameNoSpaces.length);
+              if (minLen / maxLen > 0.85) {
+                matchScore = 160;
               }
             }
           }
           
-          // Strategy 3: Last name exact match + first name match/initial
-          const apiParts = apiName.split(' ').filter(p => p.length > 0);
-          const dbParts = dbName.split(' ').filter(p => p.length > 0);
+          // Strategy 4: Last name exact match + first name match/initial
+          const apiParts = apiNameWithSpaces.split(' ').filter(p => p.length > 0);
+          const dbParts = dbNameWithSpaces.split(' ').filter(p => p.length > 0);
           
           if (apiParts.length >= 2 && dbParts.length >= 2) {
             const apiFirst = apiParts[0];
@@ -378,7 +389,7 @@ serve(async (req) => {
             }
           }
           
-          // Strategy 4: Single last name match (for cases like "Bartlett" matching "Xavier Bartlett")
+          // Strategy 5: Single last name match (for cases like "Bartlett" matching "Xavier Bartlett")
           if (apiParts.length >= 1 && dbParts.length >= 1) {
             const apiLast = apiParts[apiParts.length - 1];
             const dbLast = dbParts[dbParts.length - 1];
@@ -403,12 +414,15 @@ serve(async (req) => {
         const points = parseInt(apiPlayer.point) || 0;
         
         if (matchedPlayer) {
+          playingXIPlayerIds.push(matchedPlayer.id);
+          
           matchResults.push({
             playerId: matchedPlayer.id,
             playerName: matchedPlayer.name,
             points: points,
             matched: true,
-            apiPlayerName: apiPlayer.name
+            apiPlayerName: apiPlayer.name,
+            isPlayingXI: true
           });
 
           pointsToInsert.push({
@@ -418,7 +432,8 @@ serve(async (req) => {
             details: {
               apiPlayerName: apiPlayer.name,
               apiTeam: apiPlayer.team,
-              apiPlayerId: apiPlayer.pid
+              apiPlayerId: apiPlayer.pid,
+              isPlayingXI: true
             }
           });
         } else {
@@ -427,7 +442,8 @@ serve(async (req) => {
             playerName: '',
             points: points,
             matched: false,
-            apiPlayerName: apiPlayer.name
+            apiPlayerName: apiPlayer.name,
+            isPlayingXI: true
           });
         }
       }

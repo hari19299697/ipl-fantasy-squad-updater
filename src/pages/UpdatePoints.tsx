@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, Download, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Save, Download, Loader2, RefreshCw, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
@@ -49,6 +49,7 @@ const UpdatePoints = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string>('');
   const [playerPoints, setPlayerPoints] = useState<{ [key: string]: string }>({});
+  const [playingXIPlayers, setPlayingXIPlayers] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [externalIdDialog, setExternalIdDialog] = useState(false);
   const [externalMatchId, setExternalMatchId] = useState('');
@@ -103,16 +104,25 @@ const UpdatePoints = () => {
   const fetchExistingPoints = async () => {
     const { data, error } = await supabase
       .from('player_match_points')
-      .select('player_id, points')
+      .select('player_id, points, details')
       .eq('match_id', selectedMatch);
 
     if (error) return;
 
     const pointsMap: { [key: string]: string } = {};
+    const playingXISet = new Set<string>();
+    
     data?.forEach(p => {
       pointsMap[p.player_id] = p.points.toString();
+      // Check if player was in playing XI from saved details
+      const details = p.details as { isPlayingXI?: boolean } | null;
+      if (details?.isPlayingXI) {
+        playingXISet.add(p.player_id);
+      }
     });
+    
     setPlayerPoints(pointsMap);
+    setPlayingXIPlayers(playingXISet);
   };
 
   const handleSyncMatchIds = async () => {
@@ -186,6 +196,17 @@ const UpdatePoints = () => {
               .eq('id', selectedMatch);
           }
           
+          // Track playing XI players from response
+          if (data?.matchResults) {
+            const playingXISet = new Set<string>();
+            data.matchResults.forEach((r: any) => {
+              if (r.matched && r.isPlayingXI) {
+                playingXISet.add(r.playerId);
+              }
+            });
+            setPlayingXIPlayers(playingXISet);
+          }
+          
           setExternalIdDialog(false);
           fetchMatches(); // Refresh matches to get updated external_match_id
           fetchExistingPoints(); // Refresh points
@@ -193,9 +214,10 @@ const UpdatePoints = () => {
           // Show summary of fetched points
           if (data?.matchResults) {
             const playersWithPoints = data.matchResults.filter((r: any) => r.points > 0).length;
+            const matchedCount = data.matchResults.filter((r: any) => r.matched).length;
             toast({
               title: "Points Fetched Successfully",
-              description: `Updated ${data.savedCount} players. ${playersWithPoints} have points > 0.`,
+              description: `Matched ${matchedCount}/${data.matchResults.length} playing XI players. ${playersWithPoints} have points > 0.`,
             });
           }
         }
@@ -448,30 +470,41 @@ const UpdatePoints = () => {
                     player.real_team_id === selectedMatchData.team1_id || 
                     player.real_team_id === selectedMatchData.team2_id
                   )
-                  .map((player) => (
-                  <div key={player.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base truncate">{player.name}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                        {player.real_teams?.name} • {player.team_owners?.name || 'Unsold'}
-                      </p>
-                    </div>
-                    <div className="w-full sm:w-32">
-                      <Input
-                        type="number"
-                        placeholder="Points"
-                        value={playerPoints[player.id] || ''}
-                        onChange={(e) =>
-                          setPlayerPoints({
-                            ...playerPoints,
-                            [player.id]: e.target.value,
-                          })
-                        }
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  .map((player) => {
+                    const isInPlayingXI = playingXIPlayers.has(player.id);
+                    return (
+                      <div key={player.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm sm:text-base truncate">{player.name}</p>
+                            {isInPlayingXI && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                <Star className="h-3 w-3 fill-current" />
+                                XI
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                            {player.real_teams?.name} • {player.team_owners?.name || 'Unsold'}
+                          </p>
+                        </div>
+                        <div className="w-full sm:w-32">
+                          <Input
+                            type="number"
+                            placeholder="Points"
+                            value={playerPoints[player.id] || ''}
+                            onChange={(e) =>
+                              setPlayerPoints({
+                                ...playerPoints,
+                                [player.id]: e.target.value,
+                              })
+                            }
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
 
               <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:justify-end">
