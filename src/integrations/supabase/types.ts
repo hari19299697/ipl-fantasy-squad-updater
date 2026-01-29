@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_config: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       auction_logs: {
         Row: {
           action: string
@@ -51,6 +75,13 @@ export type Database = {
             columns: ["bidder_id"]
             isOneToOne: false
             referencedRelation: "team_owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_logs_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
+            referencedRelation: "team_owners_public"
             referencedColumns: ["id"]
           },
           {
@@ -314,6 +345,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "team_owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "team_owners_public"
             referencedColumns: ["id"]
           },
           {
@@ -619,7 +657,44 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      team_owners_public: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          short_name: string | null
+          total_points: number | null
+          tournament_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          short_name?: string | null
+          total_points?: number | null
+          tournament_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          short_name?: string | null
+          total_points?: number | null
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_owners_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
