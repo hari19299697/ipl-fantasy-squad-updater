@@ -262,9 +262,17 @@ serve(async (req) => {
     // Extract player fantasy data
     const fantasyPlayers: FantasyPlayer[] = data?.response?.comp_Fantasy_record || [];
     
-    // Log first player to debug field names
+    // Log first player to debug ALL field names including 'point'
     if (fantasyPlayers.length > 0) {
-      console.log(`Sample player data: ${JSON.stringify(fantasyPlayers[0])}`);
+      const samplePlayer = fantasyPlayers[0];
+      console.log(`Sample player ALL keys: ${JSON.stringify(Object.keys(samplePlayer))}`);
+      console.log(`Sample player with point field: name=${samplePlayer.name}, point=${samplePlayer.point}, total_point=${samplePlayer.total_point}`);
+      
+      // Also find Josh Brown to verify his data
+      const joshBrown = fantasyPlayers.find(p => p.name.toLowerCase().includes('josh brown'));
+      if (joshBrown) {
+        console.log(`Josh Brown data: ${JSON.stringify(joshBrown)}`);
+      }
     }
     
     if (fantasyPlayers.length === 0) {
