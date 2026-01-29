@@ -12,7 +12,6 @@ export const usePlayers = (tournamentId: string | undefined) => {
   const queryClient = useQueryClient();
 
   // Fetch players for a tournament
-  // Use team_owners_public view to ensure all users can read team info
   const { data: players, isLoading, error } = useQuery({
     queryKey: ['players', tournamentId],
     queryFn: async () => {
@@ -20,7 +19,7 @@ export const usePlayers = (tournamentId: string | undefined) => {
       
       const { data, error } = await supabase
         .from('players')
-        .select('*, real_teams(*), team_owners:team_owners_public(*)')
+        .select('*, real_teams(*), team_owners(*)')
         .eq('tournament_id', tournamentId)
         .order('name');
       

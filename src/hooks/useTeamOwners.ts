@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
 type TeamOwner = Database['public']['Tables']['team_owners']['Row'];
@@ -11,41 +10,21 @@ type TeamOwnerUpdate = Database['public']['Tables']['team_owners']['Update'];
 export const useTeamOwners = (tournamentId: string | undefined) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
 
   // Fetch team owners for a tournament
-  // Admins get full data from team_owners, viewers get limited data from team_owners_public view
   const { data: teamOwners, isLoading, error } = useQuery({
-    queryKey: ['teamOwners', tournamentId, isAdmin],
+    queryKey: ['teamOwners', tournamentId],
     queryFn: async () => {
       if (!tournamentId) return [];
       
-      // Admins can access full team_owners table
-      if (isAdmin) {
-        const { data, error } = await supabase
-          .from('team_owners')
-          .select('*')
-          .eq('tournament_id', tournamentId)
-          .order('name');
-        
-        if (error) throw error;
-        return data as TeamOwner[];
-      }
-      
-      // Non-admins use the public view (excludes user_id and budget_remaining)
       const { data, error } = await supabase
-        .from('team_owners_public')
+        .from('team_owners')
         .select('*')
         .eq('tournament_id', tournamentId)
         .order('name');
       
       if (error) throw error;
-      // Add default values for UI compatibility - cast to TeamOwner for type consistency
-      return (data || []).map(team => ({
-        ...team,
-        budget_remaining: 0, // Hidden from viewers
-        user_id: null, // Hidden from viewers
-      })) as TeamOwner[];
+      return data as TeamOwner[];
     },
     enabled: !!tournamentId,
   });
