@@ -156,37 +156,61 @@ const UpdatePoints = () => {
     }
   };
 
-  const handleFetchFromAPI = () => {
-    if (!externalMatchId.trim()) {
+  const handleFetchFromAPI = (useExistingId: boolean = false) => {
+    const matchIdToUse = useExistingId ? selectedMatchData?.external_match_id : externalMatchId.trim();
+    
+    if (!matchIdToUse) {
       toast({
         title: "Error",
-        description: "Please enter the external match ID",
+        description: "No external match ID available. Please enter one manually.",
         variant: "destructive",
       });
+      setExternalIdDialog(true);
       return;
     }
 
     fetchFantasyPoints(
       {
-        externalMatchId: externalMatchId.trim(),
+        externalMatchId: matchIdToUse,
         matchId: selectedMatch,
         tournamentId: tournamentId,
         saveToDb: true,
       },
       {
-        onSuccess: async () => {
-          // Save the external match ID for future use
-          await supabase
-            .from('matches')
-            .update({ external_match_id: externalMatchId.trim() })
-            .eq('id', selectedMatch);
+        onSuccess: async (data) => {
+          // Save the external match ID for future use if it's new
+          if (!useExistingId && matchIdToUse !== selectedMatchData?.external_match_id) {
+            await supabase
+              .from('matches')
+              .update({ external_match_id: matchIdToUse })
+              .eq('id', selectedMatch);
+          }
           
           setExternalIdDialog(false);
           fetchMatches(); // Refresh matches to get updated external_match_id
           fetchExistingPoints(); // Refresh points
+          
+          // Show summary of fetched points
+          if (data?.matchResults) {
+            const playersWithPoints = data.matchResults.filter((r: any) => r.points > 0).length;
+            toast({
+              title: "Points Fetched Successfully",
+              description: `Updated ${data.savedCount} players. ${playersWithPoints} have points > 0.`,
+            });
+          }
         }
       }
     );
+  };
+
+  const handleFetchButtonClick = () => {
+    // If external match ID exists, fetch directly without dialog
+    if (selectedMatchData?.external_match_id) {
+      handleFetchFromAPI(true);
+    } else {
+      // Show dialog to enter external match ID
+      setExternalIdDialog(true);
+    }
   };
 
   const handleSave = async () => {
@@ -403,7 +427,7 @@ const UpdatePoints = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setExternalIdDialog(true)}
+                  onClick={handleFetchButtonClick}
                   disabled={fetchingPoints}
                   className="w-full sm:w-auto"
                 >
@@ -453,7 +477,7 @@ const UpdatePoints = () => {
               <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:justify-end">
                 <Button 
                   variant="outline" 
-                  onClick={() => setExternalIdDialog(true)}
+                  onClick={handleFetchButtonClick}
                   disabled={fetchingPoints}
                   className="w-full sm:w-auto"
                 >
@@ -500,7 +524,7 @@ const UpdatePoints = () => {
               <Button variant="outline" onClick={() => setExternalIdDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleFetchFromAPI} disabled={fetchingPoints || !externalMatchId.trim()}>
+              <Button onClick={() => handleFetchFromAPI(false)} disabled={fetchingPoints || !externalMatchId.trim()}>
                 {fetchingPoints ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
