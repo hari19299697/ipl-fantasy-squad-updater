@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Download, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
@@ -52,6 +52,9 @@ const UpdatePoints = () => {
   const [saving, setSaving] = useState(false);
   const [externalIdDialog, setExternalIdDialog] = useState(false);
   const [externalMatchId, setExternalMatchId] = useState('');
+  const [syncDialog, setSyncDialog] = useState(false);
+  const [competitionId, setCompetitionId] = useState('129675'); // Default BBL competition ID
+  const [syncing, setSyncing] = useState(false);
   
   const { fetchFantasyPoints, isLoading: fetchingPoints, data: fantasyData } = useFantasyPoints();
 
@@ -110,6 +113,47 @@ const UpdatePoints = () => {
       pointsMap[p.player_id] = p.points.toString();
     });
     setPlayerPoints(pointsMap);
+  };
+
+  const handleSyncMatchIds = async () => {
+    if (!competitionId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter the competition ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSyncing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-fantasy-points', {
+        body: {
+          action: 'sync-competition-matches',
+          competitionId: competitionId.trim(),
+          tournamentId: tournamentId,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sync Complete",
+        description: `Updated ${data.updated} matches. ${data.unmatched} could not be matched.`,
+      });
+
+      setSyncDialog(false);
+      fetchMatches(); // Refresh matches to show updated external IDs
+    } catch (error: any) {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync match IDs",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleFetchFromAPI = () => {
@@ -264,6 +308,7 @@ const UpdatePoints = () => {
   }
 
   const selectedMatchData = matches.find(m => m.id === selectedMatch);
+  const matchesWithoutExternalId = matches.filter(m => !m.external_match_id).length;
 
   return (
     <div className="min-h-screen bg-background p-2 sm:p-4 md:p-8">
@@ -276,11 +321,40 @@ const UpdatePoints = () => {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Update Player Points</h1>
             <p className="text-sm text-muted-foreground">{tournament.name}</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSyncDialog(true)}
+            className="hidden sm:flex"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Sync Match IDs
+          </Button>
         </div>
+
+        {/* Mobile sync button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSyncDialog(true)}
+          className="w-full mb-4 sm:hidden"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Sync Match IDs from API
+        </Button>
+
+        {matchesWithoutExternalId > 0 && (
+          <Card className="p-4 mb-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>{matchesWithoutExternalId} matches</strong> don't have API IDs mapped. 
+              Click "Sync Match IDs" to automatically map them.
+            </p>
+          </Card>
+        )}
 
         <Card className="p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="space-y-4">
@@ -294,6 +368,7 @@ const UpdatePoints = () => {
                   {matches.map((match) => (
                     <SelectItem key={match.id} value={match.id}>
                       Match {match.match_number}: {match.team1.name} vs {match.team2.name}
+                      {match.external_match_id && ' ✓'}
                       {match.venue && ` - ${match.venue}`}
                     </SelectItem>
                   ))}
@@ -412,7 +487,7 @@ const UpdatePoints = () => {
                 <Label htmlFor="externalId">External Match ID</Label>
                 <Input
                   id="externalId"
-                  placeholder="e.g., 87014"
+                  placeholder="e.g., 91454"
                   value={externalMatchId}
                   onChange={(e) => setExternalMatchId(e.target.value)}
                 />
@@ -435,6 +510,50 @@ const UpdatePoints = () => {
                   <>
                     <Download className="h-4 w-4 mr-2" />
                     Fetch & Save Points
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Sync Match IDs Dialog */}
+        <Dialog open={syncDialog} onOpenChange={setSyncDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Sync Match IDs from API</DialogTitle>
+              <DialogDescription>
+                This will fetch all matches from the competition and automatically map them to your database matches by team names.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="competitionId">Competition ID</Label>
+                <Input
+                  id="competitionId"
+                  placeholder="e.g., 129675"
+                  value={competitionId}
+                  onChange={(e) => setCompetitionId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  BBL 2024-25 = 129675. Find other competition IDs from the API.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSyncDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSyncMatchIds} disabled={syncing || !competitionId.trim()}>
+                {syncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync Match IDs
                   </>
                 )}
               </Button>

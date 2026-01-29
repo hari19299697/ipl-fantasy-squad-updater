@@ -36,6 +36,38 @@ interface MatchResult {
   apiPlayerName: string;
 }
 
+interface APIMatch {
+  match_id: string;
+  match_name: string;
+  team_a: string;
+  team_b: string;
+  match_date: string;
+  match_status: string;
+}
+
+// Normalize team name for matching
+function normalizeTeamName(name: string): string {
+  return name.toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Match API team name to DB team name
+function teamsMatch(apiTeamA: string, apiTeamB: string, dbTeam1: string, dbTeam2: string): boolean {
+  const normalizedApiA = normalizeTeamName(apiTeamA);
+  const normalizedApiB = normalizeTeamName(apiTeamB);
+  const normalizedDb1 = normalizeTeamName(dbTeam1);
+  const normalizedDb2 = normalizeTeamName(dbTeam2);
+  
+  // Check if both teams match (in either order)
+  const match1 = (normalizedApiA.includes(normalizedDb1) || normalizedDb1.includes(normalizedApiA)) &&
+                 (normalizedApiB.includes(normalizedDb2) || normalizedDb2.includes(normalizedApiB));
+  const match2 = (normalizedApiA.includes(normalizedDb2) || normalizedDb2.includes(normalizedApiA)) &&
+                 (normalizedApiB.includes(normalizedDb1) || normalizedDb1.includes(normalizedApiB));
+  
+  return match1 || match2;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -60,8 +92,113 @@ serve(async (req) => {
       throw new Error('Supabase configuration is missing');
     }
 
-    const { externalMatchId, matchId, tournamentId, saveToDb = false } = await req.json();
+    const body = await req.json();
+    const { action, externalMatchId, matchId, tournamentId, saveToDb = false, competitionId } = body;
 
+    // Handle sync competition matches action
+    if (action === 'sync-competition-matches') {
+      if (!competitionId || !tournamentId) {
+        return new Response(
+          JSON.stringify({ error: 'competitionId and tournamentId are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      // Fetch matches from API
+      const url = `https://${RAPIDAPI_HOST}/competitions/${competitionId}/matches`;
+      console.log(`Fetching competition matches from: ${url}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-host': RAPIDAPI_HOST,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`RapidAPI error [${response.status}]: ${errorText}`);
+        throw new Error(`RapidAPI request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const apiMatches: APIMatch[] = data?.response?.items || [];
+
+      console.log(`Found ${apiMatches.length} matches from API`);
+
+      // Fetch DB matches with team names
+      const { data: dbMatches, error: dbError } = await supabase
+        .from('matches')
+        .select(`
+          id,
+          match_number,
+          external_match_id,
+          team1:real_teams!matches_team1_id_fkey(name),
+          team2:real_teams!matches_team2_id_fkey(name)
+        `)
+        .eq('tournament_id', tournamentId);
+
+      if (dbError) {
+        throw new Error(`Failed to fetch DB matches: ${dbError.message}`);
+      }
+
+      console.log(`Found ${dbMatches?.length || 0} matches in database`);
+
+      // Match and update
+      const updates: { dbMatchId: string; externalMatchId: string; matchName: string }[] = [];
+      const unmatched: string[] = [];
+
+      for (const dbMatch of dbMatches || []) {
+        if (dbMatch.external_match_id) {
+          // Already has external ID, skip
+          continue;
+        }
+
+        const team1Name = dbMatch.team1?.name || '';
+        const team2Name = dbMatch.team2?.name || '';
+
+        // Find matching API match
+        const apiMatch = apiMatches.find(am => 
+          teamsMatch(am.team_a, am.team_b, team1Name, team2Name)
+        );
+
+        if (apiMatch) {
+          updates.push({
+            dbMatchId: dbMatch.id,
+            externalMatchId: apiMatch.match_id,
+            matchName: `${team1Name} vs ${team2Name}`
+          });
+        } else {
+          unmatched.push(`Match ${dbMatch.match_number}: ${team1Name} vs ${team2Name}`);
+        }
+      }
+
+      // Batch update matches with external IDs
+      for (const update of updates) {
+        await supabase
+          .from('matches')
+          .update({ external_match_id: update.externalMatchId })
+          .eq('id', update.dbMatchId);
+      }
+
+      console.log(`Updated ${updates.length} matches with external IDs`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          updated: updates.length,
+          unmatched: unmatched.length,
+          updatedMatches: updates.map(u => u.matchName),
+          unmatchedMatches: unmatched
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle fetch fantasy points action (default)
     if (!externalMatchId) {
       return new Response(
         JSON.stringify({ error: 'externalMatchId is required' }),
