@@ -259,25 +259,49 @@ serve(async (req) => {
     
     console.log('Fantasy points fetched successfully');
 
-    // Extract player fantasy data
-    const fantasyPlayers: FantasyPlayer[] = data?.response?.comp_Fantasy_record || [];
+    // Extract match-specific points from the 'points' section (teama/teamb -> playing11)
+    // This contains the actual match-specific fantasy points per player
+    const pointsData = data?.response?.points;
+    const teamAPlaying11 = pointsData?.teama?.playing11 || [];
+    const teamBPlaying11 = pointsData?.teamb?.playing11 || [];
     
-    // Log first player to debug ALL field names including 'point'
-    if (fantasyPlayers.length > 0) {
-      const samplePlayer = fantasyPlayers[0];
-      console.log(`Sample player ALL keys: ${JSON.stringify(Object.keys(samplePlayer))}`);
-      console.log(`Sample player with point field: name=${samplePlayer.name}, point=${samplePlayer.point}, total_point=${samplePlayer.total_point}`);
-      
-      // Also find Josh Brown to verify his data
-      const joshBrown = fantasyPlayers.find(p => p.name.toLowerCase().includes('josh brown'));
+    // Combine playing11 from both teams - these are the match-specific points
+    const matchPlayers: { name: string; shortName: string; point: string; team: string; pid: string }[] = [];
+    
+    for (const player of teamAPlaying11) {
+      matchPlayers.push({
+        name: player.name || '',
+        shortName: player.short_name || player.player_short_name || '',
+        point: player.point || '0',
+        team: pointsData?.teama?.name || 'Team A',
+        pid: player.pid || ''
+      });
+    }
+    
+    for (const player of teamBPlaying11) {
+      matchPlayers.push({
+        name: player.name || '',
+        shortName: player.short_name || player.player_short_name || '',
+        point: player.point || '0',
+        team: pointsData?.teamb?.name || 'Team B',
+        pid: player.pid || ''
+      });
+    }
+    
+    console.log(`Found ${matchPlayers.length} players in playing XI from both teams`);
+    
+    // Log sample player data for debugging
+    if (matchPlayers.length > 0) {
+      console.log(`Sample match player: ${JSON.stringify(matchPlayers[0])}`);
+      const joshBrown = matchPlayers.find(p => p.name.toLowerCase().includes('josh brown'));
       if (joshBrown) {
-        console.log(`Josh Brown data: ${JSON.stringify(joshBrown)}`);
+        console.log(`Josh Brown match data: ${JSON.stringify(joshBrown)}`);
       }
     }
     
-    if (fantasyPlayers.length === 0) {
+    if (matchPlayers.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, data: [], message: 'No fantasy data available for this match' }),
+        JSON.stringify({ success: true, data: [], message: 'No playing XI data available for this match' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -300,50 +324,83 @@ serve(async (req) => {
       const matchResults: MatchResult[] = [];
       const pointsToInsert: { match_id: string; player_id: string; points: number; details: object }[] = [];
 
-      for (const apiPlayer of fantasyPlayers) {
-        const apiName = apiPlayer.name.toLowerCase().trim();
-        const apiShortName = apiPlayer.player_short_name.toLowerCase().trim();
+      // Use matchPlayers (from playing11) which has actual match-specific points
+      for (const apiPlayer of matchPlayers) {
+        // Normalize API name: lowercase, trim, and collapse multiple spaces
+        const apiName = apiPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
         
-        // Find matching player in DB
+        // Find matching player in DB using multiple strategies
         let matchedPlayer = null;
+        let bestMatchScore = 0;
         
         for (const dbPlayer of dbPlayers || []) {
-          const dbName = dbPlayer.name.toLowerCase().trim();
+          // Normalize DB name the same way
+          const dbName = dbPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
+          let matchScore = 0;
           
-          // Check exact match
+          // Strategy 1: Exact match (highest priority)
           if (dbName === apiName) {
             matchedPlayer = dbPlayer;
-            break;
+            break; // Perfect match, stop looking
           }
           
-          // Check if API name contains DB name or vice versa
-          if (dbName.includes(apiName) || apiName.includes(dbName)) {
-            matchedPlayer = dbPlayer;
-            break;
+          // Strategy 2: Full name containment (handles variations like "Josh Brown" vs "Josh Brown ")
+          // One must contain the other and be at least 80% of the length
+          if (apiName.length >= 5 && dbName.length >= 5) {
+            if (dbName.startsWith(apiName) || apiName.startsWith(dbName)) {
+              const minLen = Math.min(apiName.length, dbName.length);
+              const maxLen = Math.max(apiName.length, dbName.length);
+              if (minLen / maxLen > 0.8) {
+                matchScore = 150;
+              }
+            }
           }
           
-          // Check short name match
-          if (dbName.includes(apiShortName.replace(/^[a-z]\s+/i, '')) || 
-              apiShortName.includes(dbName.split(' ').pop() || '')) {
-            matchedPlayer = dbPlayer;
-            break;
+          // Strategy 3: Last name exact match + first name match/initial
+          const apiParts = apiName.split(' ').filter(p => p.length > 0);
+          const dbParts = dbName.split(' ').filter(p => p.length > 0);
+          
+          if (apiParts.length >= 2 && dbParts.length >= 2) {
+            const apiFirst = apiParts[0];
+            const apiLast = apiParts[apiParts.length - 1];
+            const dbFirst = dbParts[0];
+            const dbLast = dbParts[dbParts.length - 1];
+            
+            // Last names must match exactly and be > 3 chars
+            if (apiLast === dbLast && apiLast.length > 3) {
+              if (apiFirst === dbFirst) {
+                matchScore = Math.max(matchScore, 120); // Strong match
+              } else if (apiFirst.startsWith(dbFirst) || dbFirst.startsWith(apiFirst)) {
+                matchScore = Math.max(matchScore, 100); // First name variation (Matt vs Matthew)
+              } else if (apiFirst[0] === dbFirst[0]) {
+                matchScore = Math.max(matchScore, 60); // First initial matches
+              }
+            }
           }
           
-          // Check last name match (common in cricket)
-          const apiLastName = apiName.split(' ').pop() || '';
-          const dbLastName = dbName.split(' ').pop() || '';
-          if (apiLastName.length > 2 && dbLastName.length > 2 && apiLastName === dbLastName) {
+          // Strategy 4: Single last name match (for cases like "Bartlett" matching "Xavier Bartlett")
+          if (apiParts.length >= 1 && dbParts.length >= 1) {
+            const apiLast = apiParts[apiParts.length - 1];
+            const dbLast = dbParts[dbParts.length - 1];
+            
+            if (apiLast === dbLast && apiLast.length > 4) {
+              matchScore = Math.max(matchScore, 40);
+            }
+          }
+          
+          if (matchScore > bestMatchScore) {
+            bestMatchScore = matchScore;
             matchedPlayer = dbPlayer;
-            break;
           }
         }
+        
+        // Only accept matches with score > 30
+        if (bestMatchScore <= 30) {
+          matchedPlayer = null;
+        }
 
-        // Use 'point' field for match-specific points
-        // The 'starting11' field contains bonus points for being in starting XI (e.g., "4")
-        // If starting11 > 0, the player played. If point > 0, they participated.
-        // Simply use the point field directly - the API already handles who played
-        const matchPoints = parseInt(apiPlayer.point) || 0;
-        const points = matchPoints;
+        // Use 'point' field for match-specific points from playing11
+        const points = parseInt(apiPlayer.point) || 0;
         
         if (matchedPlayer) {
           matchResults.push({
@@ -359,21 +416,9 @@ serve(async (req) => {
             player_id: matchedPlayer.id,
             points: points,
             details: {
-              runs: parseInt(apiPlayer.run) || 0,
-              wickets: parseInt(apiPlayer.wkts) || 0,
-              catches: parseInt(apiPlayer.catch) || 0,
-              fours: parseInt(apiPlayer.four) || 0,
-              sixes: parseInt(apiPlayer.six) || 0,
-              fifties: parseInt(apiPlayer.fifty) || 0,
-              strikeRate: parseInt(apiPlayer.sr) || 0,
-              economyRate: parseInt(apiPlayer.er) || 0,
-              maidenOvers: parseInt(apiPlayer.maidenover) || 0,
-              stumpings: parseInt(apiPlayer.stumping) || 0,
-              directRunouts: parseInt(apiPlayer.directrunout) || 0,
-              lbwBowled: parseInt(apiPlayer.bonusbowedlbw) || 0,
-              starting11Points: parseInt(apiPlayer.starting11) || 0,
               apiPlayerName: apiPlayer.name,
-              apiTeam: apiPlayer.team_title
+              apiTeam: apiPlayer.team,
+              apiPlayerId: apiPlayer.pid
             }
           });
         } else {
@@ -389,16 +434,27 @@ serve(async (req) => {
 
       // Delete existing points for this match and insert new ones
       if (pointsToInsert.length > 0) {
-        // First delete existing
-        await supabase
+        // First delete existing points for this match
+        const { error: deleteError } = await supabase
           .from('player_match_points')
           .delete()
           .eq('match_id', matchId);
+        
+        if (deleteError) {
+          console.error('Delete error:', deleteError.message);
+        }
+
+        // Deduplicate by player_id (take last occurrence)
+        const uniquePoints = new Map<string, typeof pointsToInsert[0]>();
+        for (const p of pointsToInsert) {
+          uniquePoints.set(p.player_id, p);
+        }
+        const deduplicatedPoints = Array.from(uniquePoints.values());
 
         // Insert new points
         const { error: insertError } = await supabase
           .from('player_match_points')
-          .insert(pointsToInsert);
+          .insert(deduplicatedPoints);
 
         if (insertError) {
           throw new Error(`Failed to insert points: ${insertError.message}`);
@@ -475,16 +531,15 @@ serve(async (req) => {
       );
     }
 
-    // Return raw data if not saving to DB
+    // Return raw data if not saving to DB (using matchPlayers from playing11)
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: fantasyPlayers.map(p => ({
+        data: matchPlayers.map(p => ({
           name: p.name,
-          shortName: p.player_short_name,
-          team: p.team_title,
-          points: parseInt(p.point) || 0,
-          starting11Points: parseInt(p.starting11) || 0
+          shortName: p.shortName,
+          team: p.team,
+          points: parseInt(p.point) || 0
         }))
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
