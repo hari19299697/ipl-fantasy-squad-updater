@@ -168,6 +168,7 @@ export type Database = {
       matches: {
         Row: {
           created_at: string | null
+          external_match_id: string | null
           id: string
           is_completed: boolean | null
           match_date: string
@@ -179,6 +180,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          external_match_id?: string | null
           id?: string
           is_completed?: boolean | null
           match_date: string
@@ -190,6 +192,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          external_match_id?: string | null
           id?: string
           is_completed?: boolean | null
           match_date?: string
