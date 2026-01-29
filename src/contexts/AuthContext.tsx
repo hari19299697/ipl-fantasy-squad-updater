@@ -17,8 +17,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Admin secret code - in production this should be an environment variable
-const ADMIN_SECRET_CODE = "ADMIN2024";
+// Admin code validation is handled entirely server-side in the database trigger
+// The client never needs to know what the valid admin code is
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
