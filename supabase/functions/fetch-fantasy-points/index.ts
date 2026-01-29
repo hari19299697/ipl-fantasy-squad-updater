@@ -10,7 +10,8 @@ interface FantasyPlayer {
   name: string;
   pid: string;
   player_short_name: string;
-  total_point: string;
+  point: string;  // Match-specific points (this is what we need!)
+  total_point: string;  // Season/career total (NOT what we want for match points)
   team_title: string;
   run: string;
   wkts: string;
@@ -26,6 +27,7 @@ interface FantasyPlayer {
   bonusbowedlbw: string;
   bonuscatch: string;
   starting11: string;
+  playing11: string;  // Whether player is in playing XI
 }
 
 interface MatchResult {
@@ -323,7 +325,11 @@ serve(async (req) => {
           }
         }
 
-        const points = parseInt(apiPlayer.total_point) || 0;
+        // IMPORTANT: Use 'point' field for match-specific points, NOT 'total_point' (which is season total)
+        // Also check if player is in playing XI - if not, set points to 0
+        const isPlaying = apiPlayer.playing11 === '1' || apiPlayer.starting11 !== '0';
+        const matchPoints = parseInt(apiPlayer.point) || 0;
+        const points = isPlaying ? matchPoints : 0;
         
         if (matchedPlayer) {
           matchResults.push({
@@ -352,6 +358,8 @@ serve(async (req) => {
               directRunouts: parseInt(apiPlayer.directrunout) || 0,
               lbwBowled: parseInt(apiPlayer.bonusbowedlbw) || 0,
               starting11Points: parseInt(apiPlayer.starting11) || 0,
+              isPlaying: isPlaying,
+              rawMatchPoints: matchPoints,
               apiPlayerName: apiPlayer.name,
               apiTeam: apiPlayer.team_title
             }
@@ -463,7 +471,8 @@ serve(async (req) => {
           name: p.name,
           shortName: p.player_short_name,
           team: p.team_title,
-          points: parseInt(p.total_point) || 0
+          points: parseInt(p.point) || 0,  // Use match-specific 'point' field
+          isPlaying: p.playing11 === '1' || p.starting11 !== '0'
         }))
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
