@@ -451,6 +451,33 @@ serve(async (req) => {
         }
       }
 
+      // Add 0 points for players NOT in the playing XI
+      // These are all tournament players who are not in the playingXIPlayerIds list
+      const nonPlayingPlayers = (dbPlayers || []).filter(p => !playingXIPlayerIds.includes(p.id));
+      
+      console.log(`Setting 0 points for ${nonPlayingPlayers.length} non-playing players`);
+      
+      for (const player of nonPlayingPlayers) {
+        pointsToInsert.push({
+          match_id: matchId,
+          player_id: player.id,
+          points: 0,
+          details: {
+            isPlayingXI: false,
+            reason: 'Not in playing XI for this match'
+          }
+        });
+        
+        matchResults.push({
+          playerId: player.id,
+          playerName: player.name,
+          points: 0,
+          matched: true,
+          apiPlayerName: '',
+          isPlayingXI: false
+        });
+      }
+
       // Delete existing points for this match and insert new ones
       if (pointsToInsert.length > 0) {
         // First delete existing points for this match
