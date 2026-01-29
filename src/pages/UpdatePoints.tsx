@@ -213,11 +213,13 @@ const UpdatePoints = () => {
           
           // Show summary of fetched points
           if (data?.matchResults) {
+            // Only count players that are actually in the playing XI (not all tournament players)
+            const playingXIResults = data.matchResults.filter((r: any) => r.isPlayingXI);
+            const matchedPlayingXI = playingXIResults.filter((r: any) => r.matched).length;
             const playersWithPoints = data.matchResults.filter((r: any) => r.points > 0).length;
-            const matchedCount = data.matchResults.filter((r: any) => r.matched).length;
             toast({
               title: "Points Fetched Successfully",
-              description: `Matched ${matchedCount}/${data.matchResults.length} playing XI players. ${playersWithPoints} have points > 0.`,
+              description: `Matched ${matchedPlayingXI}/${playingXIResults.length} playing XI players. ${playersWithPoints} have points > 0.`,
             });
           }
         }
