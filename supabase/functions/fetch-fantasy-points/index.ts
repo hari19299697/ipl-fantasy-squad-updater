@@ -46,18 +46,24 @@ interface APIMatch {
 }
 
 // Normalize team name for matching
-function normalizeTeamName(name: string): string {
+function normalizeTeamName(name: string | undefined | null): string {
+  if (!name) return '';
   return name.toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 // Match API team name to DB team name
-function teamsMatch(apiTeamA: string, apiTeamB: string, dbTeam1: string, dbTeam2: string): boolean {
+function teamsMatch(apiTeamA: string | undefined, apiTeamB: string | undefined, dbTeam1: string | undefined, dbTeam2: string | undefined): boolean {
   const normalizedApiA = normalizeTeamName(apiTeamA);
   const normalizedApiB = normalizeTeamName(apiTeamB);
   const normalizedDb1 = normalizeTeamName(dbTeam1);
   const normalizedDb2 = normalizeTeamName(dbTeam2);
+  
+  // If any team name is empty, can't match
+  if (!normalizedApiA || !normalizedApiB || !normalizedDb1 || !normalizedDb2) {
+    return false;
+  }
   
   // Check if both teams match (in either order)
   const match1 = (normalizedApiA.includes(normalizedDb1) || normalizedDb1.includes(normalizedApiA)) &&
