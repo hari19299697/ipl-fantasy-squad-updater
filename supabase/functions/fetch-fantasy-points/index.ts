@@ -344,15 +344,18 @@ serve(async (req) => {
           const dbNameWithSpaces = dbPlayer.name.toLowerCase().trim().replace(/\s+/g, ' ');
           let matchScore = 0;
           
+          
           // Strategy 1: Exact match after removing all spaces (handles "Josh Brown " vs "Josh Brown")
           if (dbNameNoSpaces === apiName) {
             matchedPlayer = dbPlayer;
+            bestMatchScore = 200; // High score for exact match
             break; // Perfect match, stop looking
           }
           
           // Strategy 2: Exact match with normalized spaces
           if (dbNameWithSpaces === apiNameWithSpaces) {
             matchedPlayer = dbPlayer;
+            bestMatchScore = 200; // High score for exact match
             break;
           }
           
@@ -405,7 +408,7 @@ serve(async (req) => {
           }
         }
         
-        // Only accept matches with score > 30
+        // Only accept matches with score > 30 (but exact matches already have score 200)
         if (bestMatchScore <= 30) {
           matchedPlayer = null;
         }
