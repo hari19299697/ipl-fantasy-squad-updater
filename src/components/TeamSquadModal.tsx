@@ -1,7 +1,8 @@
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Wallet, Users, Trophy } from "lucide-react";
+import { Wallet, Users, Trophy, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Player = Database['public']['Tables']['players']['Row'] & {
@@ -21,14 +22,44 @@ interface TeamSquadModalProps {
   maxPlayers?: number;
 }
 
+type SortField = 'name' | 'points' | 'auction_price' | 'team';
+type SortDir = 'asc' | 'desc';
+
 const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, maxPlayers }: TeamSquadModalProps) => {
-  // Sort players by auction price (descending), then by total points
-  const sortedPlayers = [...players].sort((a, b) => {
-    const priceA = a.auction_price || 0;
-    const priceB = b.auction_price || 0;
-    if (priceB !== priceA) return priceB - priceA;
-    return (b.total_points || 0) - (a.total_points || 0);
-  });
+  const [sortField, setSortField] = useState<SortField>('auction_price');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir(field === 'name' || field === 'team' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      switch (sortField) {
+        case 'name':
+          return dir * a.name.localeCompare(b.name);
+        case 'points':
+          return dir * ((a.total_points || 0) - (b.total_points || 0));
+        case 'auction_price':
+          return dir * ((a.auction_price || 0) - (b.auction_price || 0));
+        case 'team':
+          return dir * (a.real_teams?.short_name || '').localeCompare(b.real_teams?.short_name || '');
+        default:
+          return 0;
+      }
+    });
+  }, [players, sortField, sortDir]);
 
   const totalSpent = players.reduce((sum, p) => sum + (p.auction_price || 0), 0);
 
@@ -85,12 +116,20 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Player</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                    <span className="flex items-center">Player <SortIcon field="name" /></span>
+                  </TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Team</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => handleSort('team')}>
+                    <span className="flex items-center">Team <SortIcon field="team" /></span>
+                  </TableHead>
                   <TableHead className="text-right">Base Price</TableHead>
-                  <TableHead className="text-right">Purchased At</TableHead>
-                  <TableHead className="text-right">Points</TableHead>
+                  <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('auction_price')}>
+                    <span className="flex items-center justify-end">Purchased At <SortIcon field="auction_price" /></span>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('points')}>
+                    <span className="flex items-center justify-end">Points <SortIcon field="points" /></span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
