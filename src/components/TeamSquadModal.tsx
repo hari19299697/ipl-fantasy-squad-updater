@@ -26,8 +26,9 @@ type SortField = 'name' | 'points' | 'auction_price' | 'team';
 type SortDir = 'asc' | 'desc';
 
 const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, maxPlayers }: TeamSquadModalProps) => {
-  const [sortField, setSortField] = useState<SortField>('auction_price');
+  const [sortField, setSortField] = useState<SortField>('points');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const TOP_N = 18;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
