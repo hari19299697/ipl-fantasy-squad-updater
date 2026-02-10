@@ -142,30 +142,56 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedPlayers.map((player) => (
-                  <TableRow 
-                    key={player.id} 
-                    className="group hover:bg-muted/50"
-                  >
-                    <TableCell>
-                      <div className="font-medium">{player.name}</div>
-                      {player.category && (
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {player.category}
-                        </Badge>
+                {sortedPlayers.map((player, index) => {
+                  // Determine if this player is in the top N by points
+                  const top18Ids = new Set(pointsSorted.slice(0, TOP_N).map(p => p.id));
+                  const isInTop = top18Ids.has(player.id);
+                  
+                  // Find if this is the boundary row (last top-N player in current sort order)
+                  const topIndices = sortedPlayers
+                    .map((p, i) => top18Ids.has(p.id) ? i : -1)
+                    .filter(i => i !== -1);
+                  const lastTopIndex = topIndices.length > 0 ? Math.max(...topIndices) : -1;
+                  const isBoundary = index === lastTopIndex && players.length > TOP_N;
+
+                  return (
+                    <>
+                      <TableRow 
+                        key={player.id} 
+                        className={`group hover:bg-muted/50 ${isInTop ? 'bg-primary/5' : 'opacity-50'}`}
+                      >
+                        <TableCell>
+                          <div className="font-medium">{player.name}</div>
+                          {player.category && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              {player.category}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="capitalize">{player.role.replace('_', ' ')}</TableCell>
+                        <TableCell>{player.real_teams?.short_name || 'N/A'}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          ₹{(player.base_price || 0).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-primary">
+                          ₹{(player.auction_price || 0).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
+                      </TableRow>
+                      {isBoundary && (
+                        <TableRow key={`divider-${player.id}`}>
+                          <TableCell colSpan={6} className="p-0">
+                            <div className="border-t-2 border-dashed border-primary/40 my-0 relative">
+                              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-background px-2 text-xs text-muted-foreground font-medium">
+                                Top {TOP_N} — Total: {top18Total} pts
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       )}
-                    </TableCell>
-                    <TableCell className="capitalize">{player.role.replace('_', ' ')}</TableCell>
-                    <TableCell>{player.real_teams?.short_name || 'N/A'}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      ₹{(player.base_price || 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-primary">
-                      ₹{(player.auction_price || 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
-                  </TableRow>
-                ))}
+                    </>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
