@@ -64,6 +64,14 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
 
   const totalSpent = players.reduce((sum, p) => sum + (p.auction_price || 0), 0);
 
+  // Always sort by points desc to determine top N for total calculation
+  const pointsSorted = useMemo(() => {
+    return [...players].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
+  }, [players]);
+
+  const top18Total = useMemo(() => {
+    return pointsSorted.slice(0, TOP_N).reduce((sum, p) => sum + (p.total_points || 0), 0);
+  }, [pointsSorted]);
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
