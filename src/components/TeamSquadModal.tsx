@@ -102,8 +102,8 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
           <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
             <Trophy className="h-5 w-5 text-primary" />
             <div>
-              <p className="text-xs text-muted-foreground">Total Points</p>
-              <p className="text-lg font-bold">{team?.total_points || 0}</p>
+              <p className="text-xs text-muted-foreground">Total Points (Top {TOP_N})</p>
+              <p className="text-lg font-bold">{top18Total}</p>
             </div>
           </div>
           
