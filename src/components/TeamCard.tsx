@@ -9,9 +9,10 @@ interface TeamCardProps {
   rank: number;
   playerCount?: number;
   maxPlayers?: number;
+  top18Points?: number;
 }
 
-const TeamCard = ({ team, rank, playerCount = 0, maxPlayers }: TeamCardProps) => {
+const TeamCard = ({ team, rank, playerCount = 0, maxPlayers, top18Points }: TeamCardProps) => {
   return (
     <div className="bg-card rounded-lg shadow-md overflow-hidden border transition-all hover:shadow-lg">
       <div 
@@ -38,7 +39,7 @@ const TeamCard = ({ team, rank, playerCount = 0, maxPlayers }: TeamCardProps) =>
               <Trophy className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">Points</span>
             </div>
-            <span className="text-lg font-semibold text-foreground">{team.total_points}</span>
+            <span className="text-lg font-semibold text-foreground">{top18Points ?? team.total_points}</span>
           </div>
           
           <div className="flex items-center justify-between">
