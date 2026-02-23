@@ -25,19 +25,41 @@ const Dashboard = () => {
   // Get max players from auction rules
   const maxPlayers = tournamentAuctionRule?.auction_rules?.max_players_per_team || undefined;
 
-  // Calculate player count per owner
-  const playerCountByOwner = useMemo(() => {
-    const counts: Record<string, number> = {};
+  const TOP_N = 18;
+
+  // Calculate player count and top-18 points per owner
+  const ownerStats = useMemo(() => {
+    const stats: Record<string, { count: number; top18Points: number }> = {};
     players.forEach(player => {
       if (player.owner_id) {
-        counts[player.owner_id] = (counts[player.owner_id] || 0) + 1;
+        if (!stats[player.owner_id]) {
+          stats[player.owner_id] = { count: 0, top18Points: 0 };
+        }
+        stats[player.owner_id].count += 1;
       }
     });
-    return counts;
+    // Calculate top-18 points per owner
+    const playersByOwner: Record<string, number[]> = {};
+    players.forEach(player => {
+      if (player.owner_id) {
+        if (!playersByOwner[player.owner_id]) playersByOwner[player.owner_id] = [];
+        playersByOwner[player.owner_id].push(player.total_points || 0);
+      }
+    });
+    Object.entries(playersByOwner).forEach(([ownerId, points]) => {
+      const sorted = [...points].sort((a, b) => b - a);
+      const top = sorted.slice(0, TOP_N);
+      if (stats[ownerId]) {
+        stats[ownerId].top18Points = top.reduce((sum, p) => sum + p, 0);
+      }
+    });
+    return stats;
   }, [players]);
 
-  // Sort teams by total points (descending)
-  const sortedTeams = [...teamOwners].sort((a, b) => b.total_points - a.total_points);
+  // Sort teams by top-18 points (descending)
+  const sortedTeams = [...teamOwners].sort((a, b) => 
+    (ownerStats[b.id]?.top18Points || 0) - (ownerStats[a.id]?.top18Points || 0)
+  );
 
   const handleTeamClick = (team: TeamOwner) => {
     setSelectedTeam(team);
@@ -88,7 +110,8 @@ const Dashboard = () => {
                 <TeamCard 
                   team={team} 
                   rank={index + 1} 
-                  playerCount={playerCountByOwner[team.id] || 0}
+                  playerCount={ownerStats[team.id]?.count || 0}
+                  top18Points={ownerStats[team.id]?.top18Points || 0}
                   maxPlayers={maxPlayers}
                 />
               </div>
