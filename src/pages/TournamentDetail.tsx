@@ -78,20 +78,34 @@ const TournamentDetail = () => {
   // Get max players from auction rules
   const maxPlayers = appliedAuctionRule?.max_players_per_team || undefined;
 
-  // Calculate player count per owner
-  const playerCountByOwner = useMemo(() => {
-    const counts: Record<string, number> = {};
+  const TOP_N = 18;
+
+  // Calculate player count and top-18 points per owner
+  const ownerStats = useMemo(() => {
+    const stats: Record<string, { count: number; top18Points: number }> = {};
+    const playersByOwner: Record<string, number[]> = {};
     players.forEach(player => {
       if (player.owner_id) {
-        counts[player.owner_id] = (counts[player.owner_id] || 0) + 1;
+        if (!stats[player.owner_id]) {
+          stats[player.owner_id] = { count: 0, top18Points: 0 };
+        }
+        stats[player.owner_id].count += 1;
+        if (!playersByOwner[player.owner_id]) playersByOwner[player.owner_id] = [];
+        playersByOwner[player.owner_id].push(player.total_points || 0);
       }
     });
-    return counts;
+    Object.entries(playersByOwner).forEach(([ownerId, points]) => {
+      const sorted = [...points].sort((a, b) => b - a);
+      stats[ownerId].top18Points = sorted.slice(0, TOP_N).reduce((sum, p) => sum + p, 0);
+    });
+    return stats;
   }, [players]);
 
   const isLoading = loadingTournament || loadingPlayers || loadingOwners || loadingMatches;
 
-  const sortedTeams = [...teamOwners].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
+  const sortedTeams = [...teamOwners].sort((a, b) => 
+    (ownerStats[b.id]?.top18Points || 0) - (ownerStats[a.id]?.top18Points || 0)
+  );
   
   const getTeamPlayers = (ownerId: string) => {
     return players.filter(player => player.owner_id === ownerId);
@@ -284,7 +298,8 @@ const TournamentDetail = () => {
                     <TeamCard 
                       team={team} 
                       rank={index + 1} 
-                      playerCount={playerCountByOwner[team.id] || 0}
+                      playerCount={ownerStats[team.id]?.count || 0}
+                      top18Points={ownerStats[team.id]?.top18Points || 0}
                       maxPlayers={maxPlayers}
                     />
                   </div>
@@ -363,7 +378,7 @@ const TournamentDetail = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-xs sm:text-sm hidden md:table-cell">₹{team.budget_remaining.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-semibold text-xs sm:text-sm">{team.total_points || 0}</TableCell>
+                              <TableCell className="text-right font-semibold text-xs sm:text-sm">{ownerStats[team.id]?.top18Points || 0}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
