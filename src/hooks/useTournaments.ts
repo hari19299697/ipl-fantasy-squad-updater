@@ -23,6 +23,9 @@ export const useTournaments = () => {
       if (error) throw error;
       return data as Tournament[];
     },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    staleTime: 30000,
   });
 
   // Create tournament
