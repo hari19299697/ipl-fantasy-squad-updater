@@ -83,32 +83,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const retryFetch = async <T,>(fn: () => Promise<T>, retries = 3): Promise<T> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        if (i === retries - 1 || err?.message !== "Failed to fetch") throw err;
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+      }
+    }
+    throw new Error("Failed to fetch");
+  };
+
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error: error as Error | null };
+    try {
+      const { error } = await retryFetch(() =>
+        supabase.auth.signInWithPassword({ email, password })
+      );
+      return { error: error as Error | null };
+    } catch (err: any) {
+      return { error: err as Error };
+    }
   };
 
   const signUp = async (email: string, password: string, adminCode?: string) => {
-    // Pass admin code in user metadata so the database trigger can check it
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          admin_code: adminCode || "", // Pass to trigger for role assignment
-        },
-      },
-    });
-
-    if (error) {
-      return { error: error as Error };
+    try {
+      const { data, error } = await retryFetch(() =>
+        supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: {
+              admin_code: adminCode || "",
+            },
+          },
+        })
+      );
+      if (error) return { error: error as Error };
+      return { error: null };
+    } catch (err: any) {
+      return { error: err as Error };
     }
-
-    return { error: null };
   };
 
   const signOut = async () => {
