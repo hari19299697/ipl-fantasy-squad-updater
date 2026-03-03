@@ -501,7 +501,7 @@ const UpdatePoints = () => {
       }
 
       // Recalculate totals for all players
-      await recalculateAllTotals();
+      await updateTeamOwnerTotals();
 
       toast({
         title: "Bulk Sync Complete",
@@ -518,34 +518,22 @@ const UpdatePoints = () => {
     }
   };
 
-  const recalculateAllTotals = async () => {
-    const playerIds = players.map(p => p.id);
-    const { data: allMatchPoints } = await supabase
-      .from('player_match_points')
-      .select('player_id, points')
-      .in('player_id', playerIds);
+  const updateTeamOwnerTotals = async () => {
+    // Player total_points are updated automatically by DB trigger
+    // We just need to recalculate team owner totals from current player data
+    const { data: playersWithOwners } = await supabase
+      .from('players')
+      .select('id, owner_id, total_points')
+      .eq('tournament_id', tournamentId!)
+      .not('owner_id', 'is', null);
 
-    const playerTotals = new Map<string, number>();
-    allMatchPoints?.forEach(mp => {
-      playerTotals.set(mp.player_id, (playerTotals.get(mp.player_id) || 0) + mp.points);
-    });
-
-    // Update each player's total
-    await Promise.all(
-      players.map(p =>
-        supabase
-          .from('players')
-          .update({ total_points: playerTotals.get(p.id) || 0 })
-          .eq('id', p.id)
-      )
-    );
-
-    // Update team owner totals
     const ownerTotals = new Map<string, number>();
-    players.forEach(player => {
+    playersWithOwners?.forEach(player => {
       if (player.owner_id) {
-        const playerTotal = playerTotals.get(player.id) || 0;
-        ownerTotals.set(player.owner_id, (ownerTotals.get(player.owner_id) || 0) + playerTotal);
+        ownerTotals.set(
+          player.owner_id,
+          (ownerTotals.get(player.owner_id) || 0) + (player.total_points || 0)
+        );
       }
     });
 
@@ -594,7 +582,7 @@ const UpdatePoints = () => {
 
         if (error) throw error;
 
-        await recalculateAllTotals();
+        await updateTeamOwnerTotals();
       }
 
       await supabase
