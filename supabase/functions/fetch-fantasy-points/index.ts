@@ -506,30 +506,8 @@ serve(async (req) => {
           throw new Error(`Failed to insert points: ${insertError.message}`);
         }
 
-        // Update player total points
-        const playerIds = pointsToInsert.map(p => p.player_id);
-        
-        // Fetch all match points for these players
-        const { data: allMatchPoints } = await supabase
-          .from('player_match_points')
-          .select('player_id, points')
-          .in('player_id', playerIds);
-
-        // Calculate totals
-        const playerTotals = new Map<string, number>();
-        allMatchPoints?.forEach(mp => {
-          playerTotals.set(mp.player_id, (playerTotals.get(mp.player_id) || 0) + mp.points);
-        });
-
-        // Update each player's total
-        await Promise.all(
-          Array.from(playerTotals.entries()).map(([playerId, totalPoints]) =>
-            supabase
-              .from('players')
-              .update({ total_points: totalPoints })
-              .eq('id', playerId)
-          )
-        );
+        // Player total_points are updated automatically by DB trigger
+        // Just need to wait a moment for triggers to complete, then update team owner totals
 
         // Update team owner totals
         const { data: playersWithOwners } = await supabase

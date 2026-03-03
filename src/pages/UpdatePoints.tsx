@@ -501,7 +501,7 @@ const UpdatePoints = () => {
       }
 
       // Recalculate totals for all players
-      await recalculateAllTotals();
+      await updateTeamOwnerTotals();
 
       toast({
         title: "Bulk Sync Complete",
@@ -582,7 +582,7 @@ const UpdatePoints = () => {
 
         if (error) throw error;
 
-        await recalculateAllTotals();
+        await updateTeamOwnerTotals();
       }
 
       await supabase
