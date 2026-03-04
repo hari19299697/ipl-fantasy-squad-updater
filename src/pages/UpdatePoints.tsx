@@ -562,33 +562,52 @@ const UpdatePoints = () => {
     setSaving(true);
 
     try {
-      await supabase
-        .from('player_match_points')
-        .delete()
-        .eq('match_id', selectedMatch);
-
+      // Build upsert data - include ALL players with points (including 0)
       const pointsData = Object.entries(playerPoints)
-        .filter(([_, points]) => points && parseInt(points) > 0)
+        .filter(([_, points]) => points !== '' && points !== undefined)
         .map(([playerId, points]) => ({
           match_id: selectedMatch,
           player_id: playerId,
-          points: parseInt(points),
+          points: parseInt(points) || 0,
         }));
 
       if (pointsData.length > 0) {
+        // Use upsert instead of delete+insert to avoid triggering unnecessary deletes
         const { error } = await supabase
           .from('player_match_points')
-          .insert(pointsData);
+          .upsert(pointsData, { onConflict: 'player_id,match_id' });
 
         if (error) throw error;
-
-        await updateTeamOwnerTotals();
       }
 
+      // Remove entries for players that were cleared (had points before but now removed)
+      const { data: existingPoints } = await supabase
+        .from('player_match_points')
+        .select('player_id')
+        .eq('match_id', selectedMatch);
+
+      const currentPlayerIds = new Set(pointsData.map(p => p.player_id));
+      const toDelete = existingPoints
+        ?.filter(ep => !currentPlayerIds.has(ep.player_id))
+        .map(ep => ep.player_id) || [];
+
+      if (toDelete.length > 0) {
+        await supabase
+          .from('player_match_points')
+          .delete()
+          .eq('match_id', selectedMatch)
+          .in('player_id', toDelete);
+      }
+
+      // Mark match as completed
       await supabase
         .from('matches')
         .update({ is_completed: true })
         .eq('id', selectedMatch);
+
+      // Wait a moment for triggers to complete, then update team owner totals
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await updateTeamOwnerTotals();
 
       toast({
         title: "Success",
