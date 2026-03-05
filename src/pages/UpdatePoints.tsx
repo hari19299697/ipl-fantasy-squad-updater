@@ -479,16 +479,10 @@ const UpdatePoints = () => {
         });
 
         if (pointsToInsert.length > 0) {
-          // Delete existing points for this match first
+          // Use upsert instead of delete+insert to avoid zeroing points
           await supabase
             .from('player_match_points')
-            .delete()
-            .eq('match_id', pair.currentMatchId);
-
-          // Insert new points
-          await supabase
-            .from('player_match_points')
-            .insert(pointsToInsert);
+            .upsert(pointsToInsert, { onConflict: 'player_id,match_id' });
 
           // Mark match as completed
           await supabase
@@ -519,20 +513,37 @@ const UpdatePoints = () => {
   };
 
   const updateTeamOwnerTotals = async () => {
-    // Player total_points are updated automatically by DB trigger
-    // We just need to recalculate team owner totals from current player data
+    // Calculate team owner totals directly from player_match_points
+    // This avoids any dependency on players.total_points being up-to-date
     const { data: playersWithOwners } = await supabase
       .from('players')
-      .select('id, owner_id, total_points')
+      .select('id, owner_id')
       .eq('tournament_id', tournamentId!)
       .not('owner_id', 'is', null);
 
+    if (!playersWithOwners || playersWithOwners.length === 0) return;
+
+    // Get all match points for these players directly
+    const playerIds = playersWithOwners.map(p => p.id);
+    const { data: allMatchPoints } = await supabase
+      .from('player_match_points')
+      .select('player_id, points')
+      .in('player_id', playerIds);
+
+    // Sum points per player from match points table (source of truth)
+    const playerTotals = new Map<string, number>();
+    allMatchPoints?.forEach(mp => {
+      playerTotals.set(mp.player_id, (playerTotals.get(mp.player_id) || 0) + mp.points);
+    });
+
+    // Aggregate per owner
     const ownerTotals = new Map<string, number>();
-    playersWithOwners?.forEach(player => {
+    playersWithOwners.forEach(player => {
       if (player.owner_id) {
+        const playerTotal = playerTotals.get(player.id) || 0;
         ownerTotals.set(
           player.owner_id,
-          (ownerTotals.get(player.owner_id) || 0) + (player.total_points || 0)
+          (ownerTotals.get(player.owner_id) || 0) + playerTotal
         );
       }
     });
@@ -605,8 +616,7 @@ const UpdatePoints = () => {
         .update({ is_completed: true })
         .eq('id', selectedMatch);
 
-      // Wait a moment for triggers to complete, then update team owner totals
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Update team owner totals directly from player_match_points (no delay needed)
       await updateTeamOwnerTotals();
 
       toast({
