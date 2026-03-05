@@ -616,8 +616,7 @@ const UpdatePoints = () => {
         .update({ is_completed: true })
         .eq('id', selectedMatch);
 
-      // Wait a moment for triggers to complete, then update team owner totals
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Update team owner totals directly from player_match_points (no delay needed)
       await updateTeamOwnerTotals();
 
       toast({
