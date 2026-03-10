@@ -574,12 +574,13 @@ const UpdatePoints = () => {
 
     try {
       // Build upsert data - include ALL players with points (including 0)
+      // Treat null/undefined/empty as 0
       const pointsData = Object.entries(playerPoints)
-        .filter(([_, points]) => points !== '' && points !== undefined)
+        .filter(([_, points]) => points !== undefined)
         .map(([playerId, points]) => ({
           match_id: selectedMatch,
           player_id: playerId,
-          points: parseInt(points) || 0,
+          points: parseInt(points || '0') || 0,
         }));
 
       if (pointsData.length > 0) {

@@ -701,6 +701,8 @@ const Auction = () => {
       setCurrentBid(0);
       setSelectedOwner(null);
       setBidAmount('');
+      setShuffleInitialized(false);
+      setSeenPlayersPerCategory({});
       
       toast({
         title: "Auction Reset Complete!",
