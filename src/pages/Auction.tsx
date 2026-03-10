@@ -266,13 +266,20 @@ const Auction = () => {
   // Group shuffled players by category, filtering out "seen" players in the current round
   const playersByCategory = categories.map(category => {
     const seenSet = seenPlayersPerCategory[category.name] || new Set<string>();
+    // Players remaining to be shown in this round (not yet seen)
     const categoryPlayers = shuffledPlayers.filter(
       p => p.category === category.name && !seenSet.has(p.id)
     );
+    // Original total of ALL unsold players in this category (including seen/unsold ones)
+    const originalTotal = shuffledPlayers.filter(p => p.category === category.name).length;
+    // How many have been processed (sold removed from shuffledPlayers, unsold added to seenSet)
+    const processedCount = originalTotal - categoryPlayers.length;
     return {
       category,
       players: categoryPlayers,
-      totalUnsold: shuffledPlayers.filter(p => p.category === category.name).length,
+      originalTotal,
+      processedCount,
+      totalUnsold: originalTotal,
     };
   });
 
@@ -917,7 +924,7 @@ const Auction = () => {
                             variant={currentCategoryIndex === idx ? "secondary" : "outline"}
                             className="ml-2"
                           >
-                            {categoryGroup.players.length}
+                          {categoryGroup.players.length}/{categoryGroup.originalTotal}
                           </Badge>
                         </motion.button>
                       ))}
@@ -943,7 +950,7 @@ const Auction = () => {
                                   {currentCategory?.category.name}
                                 </Badge>
                                 <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground">
-                                  {currentPlayerIndex + 1} / {currentCategoryPlayers.length}
+                                  {(currentCategory?.processedCount || 0) + currentPlayerIndex + 1} / {currentCategory?.originalTotal || 0}
                                 </Badge>
                               </div>
                               <motion.h2 
