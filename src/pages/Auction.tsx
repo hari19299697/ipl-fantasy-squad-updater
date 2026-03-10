@@ -253,14 +253,15 @@ const Auction = () => {
     };
   }, [tournamentId]);
 
-  // Initialize shuffled players - update when players change
+  // Initialize shuffled players ONLY ONCE when data first loads
   useEffect(() => {
-    if (players.length > 0 && categories.length > 0) {
+    if (!shuffleInitialized && players.length > 0 && categories.length > 0) {
       const unsoldPlayers = players.filter(p => !p.owner_id);
       const shuffled = shuffleArray(unsoldPlayers);
       setShuffledPlayers(shuffled);
+      setShuffleInitialized(true);
     }
-  }, [players, categories.length]);
+  }, [players, categories.length, shuffleInitialized]);
 
   // Group shuffled players by category
   const playersByCategory = categories.map(category => ({
