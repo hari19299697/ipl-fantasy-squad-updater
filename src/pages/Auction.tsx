@@ -924,7 +924,7 @@ const Auction = () => {
                             variant={currentCategoryIndex === idx ? "secondary" : "outline"}
                             className="ml-2"
                           >
-                            {categoryGroup.players.length}
+                          {categoryGroup.players.length}/{categoryGroup.originalTotal}
                           </Badge>
                         </motion.button>
                       ))}
