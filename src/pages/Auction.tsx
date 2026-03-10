@@ -82,6 +82,9 @@ const Auction = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<typeof players[0] | null>(null);
   const [shuffledPlayers, setShuffledPlayers] = useState<any[]>([]);
+  const [shuffleInitialized, setShuffleInitialized] = useState(false);
+  // Track players already seen in the current round per category
+  const [seenPlayersPerCategory, setSeenPlayersPerCategory] = useState<Record<string, Set<string>>>({});
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [initialBudget, setInitialBudget] = useState<number>(0);
   const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState<number>(25);
