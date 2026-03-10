@@ -82,6 +82,9 @@ const Auction = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<typeof players[0] | null>(null);
   const [shuffledPlayers, setShuffledPlayers] = useState<any[]>([]);
+  const [shuffleInitialized, setShuffleInitialized] = useState(false);
+  // Track players already seen in the current round per category
+  const [seenPlayersPerCategory, setSeenPlayersPerCategory] = useState<Record<string, Set<string>>>({});
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [initialBudget, setInitialBudget] = useState<number>(0);
   const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState<number>(25);
@@ -250,20 +253,28 @@ const Auction = () => {
     };
   }, [tournamentId]);
 
-  // Initialize shuffled players - update when players change
+  // Initialize shuffled players ONLY ONCE when data first loads
   useEffect(() => {
-    if (players.length > 0 && categories.length > 0) {
+    if (!shuffleInitialized && players.length > 0 && categories.length > 0) {
       const unsoldPlayers = players.filter(p => !p.owner_id);
       const shuffled = shuffleArray(unsoldPlayers);
       setShuffledPlayers(shuffled);
+      setShuffleInitialized(true);
     }
-  }, [players, categories.length]);
+  }, [players, categories.length, shuffleInitialized]);
 
-  // Group shuffled players by category
-  const playersByCategory = categories.map(category => ({
-    category,
-    players: shuffledPlayers.filter(p => p.category === category.name)
-  }));
+  // Group shuffled players by category, filtering out "seen" players in the current round
+  const playersByCategory = categories.map(category => {
+    const seenSet = seenPlayersPerCategory[category.name] || new Set<string>();
+    const categoryPlayers = shuffledPlayers.filter(
+      p => p.category === category.name && !seenSet.has(p.id)
+    );
+    return {
+      category,
+      players: categoryPlayers,
+      totalUnsold: shuffledPlayers.filter(p => p.category === category.name).length,
+    };
+  });
 
   const allSoldPlayers = players.filter(p => p.owner_id);
   const allUnsoldPlayers = players.filter(p => !p.owner_id);
@@ -596,14 +607,53 @@ const Auction = () => {
       description: `${currentPlayer.name} remains unsold`,
     });
 
-    if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
-      setCurrentPlayerIndex(prev => prev + 1);
+    // Mark this player as "seen" in the current round
+    const categoryName = currentCategory?.category.name || '';
+    setSeenPlayersPerCategory(prev => {
+      const newSeen = { ...prev };
+      const seenSet = new Set(prev[categoryName] || []);
+      seenSet.add(currentPlayer.id);
+      newSeen[categoryName] = seenSet;
+      return newSeen;
+    });
+
+    // Check if this was the last unseen player in the category
+    const seenSet = seenPlayersPerCategory[categoryName] || new Set<string>();
+    const remainingUnseen = shuffledPlayers.filter(
+      p => p.category === categoryName && !seenSet.has(p.id) && p.id !== currentPlayer.id
+    );
+
+    if (remainingUnseen.length === 0) {
+      // All players in this category have been seen — start a new round
+      // Re-shuffle the remaining unsold players in this category
+      const unsoldInCategory = shuffledPlayers.filter(p => p.category === categoryName);
+      
+      if (unsoldInCategory.length > 0) {
+        // Re-shuffle them in the main list
+        const reshuffled = shuffleArray(unsoldInCategory);
+        const otherPlayers = shuffledPlayers.filter(p => p.category !== categoryName);
+        setShuffledPlayers([...otherPlayers, ...reshuffled]);
+        
+        // Clear seen set for this category to start fresh round
+        setSeenPlayersPerCategory(prev => {
+          const newSeen = { ...prev };
+          delete newSeen[categoryName];
+          return newSeen;
+        });
+        
+        setCurrentPlayerIndex(0);
+        toast({
+          title: "New Round Started",
+          description: `All players in ${categoryName} have been shown. Starting new round with randomized order.`,
+        });
+      }
     } else {
-      setCurrentPlayerIndex(0);
-      toast({
-        title: "Continuing with Unsold Players",
-        description: `Showing unsold players in ${currentCategory?.category.name} category`,
-      });
+      // Move to next unseen player
+      if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
+        setCurrentPlayerIndex(prev => prev + 1);
+      } else {
+        setCurrentPlayerIndex(0);
+      }
     }
   };
 
@@ -651,6 +701,8 @@ const Auction = () => {
       setCurrentBid(0);
       setSelectedOwner(null);
       setBidAmount('');
+      setShuffleInitialized(false);
+      setSeenPlayersPerCategory({});
       
       toast({
         title: "Auction Reset Complete!",

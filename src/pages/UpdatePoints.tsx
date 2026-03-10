@@ -136,7 +136,7 @@ const UpdatePoints = () => {
     const playingXISet = new Set<string>();
     
     data?.forEach(p => {
-      pointsMap[p.player_id] = p.points.toString();
+      pointsMap[p.player_id] = (p.points ?? 0).toString();
       const details = p.details as { isPlayingXI?: boolean } | null;
       if (details?.isPlayingXI) {
         playingXISet.add(p.player_id);
@@ -574,12 +574,13 @@ const UpdatePoints = () => {
 
     try {
       // Build upsert data - include ALL players with points (including 0)
+      // Treat null/undefined/empty as 0
       const pointsData = Object.entries(playerPoints)
-        .filter(([_, points]) => points !== '' && points !== undefined)
+        .filter(([_, points]) => points !== undefined)
         .map(([playerId, points]) => ({
           match_id: selectedMatch,
           player_id: playerId,
-          points: parseInt(points) || 0,
+          points: parseInt(points || '0') || 0,
         }));
 
       if (pointsData.length > 0) {
