@@ -573,15 +573,17 @@ const UpdatePoints = () => {
     setSaving(true);
 
     try {
-      // Build upsert data - include ALL players with points (including 0)
-      // Treat null/undefined/empty as 0
-      const pointsData = Object.entries(playerPoints)
-        .filter(([_, points]) => points !== undefined)
-        .map(([playerId, points]) => ({
-          match_id: selectedMatch,
-          player_id: playerId,
-          points: parseInt(points || '0') || 0,
-        }));
+      // Build upsert data - include ALL players for this match's teams
+      // Any blank/null/undefined points default to 0
+      const matchPlayers = players.filter(
+        p => p.real_team_id === selectedMatchData?.team1_id || p.real_team_id === selectedMatchData?.team2_id
+      );
+      
+      const pointsData = matchPlayers.map(player => ({
+        match_id: selectedMatch,
+        player_id: player.id,
+        points: parseInt(playerPoints[player.id] || '0') || 0,
+      }));
 
       if (pointsData.length > 0) {
         // Use upsert instead of delete+insert to avoid triggering unnecessary deletes
