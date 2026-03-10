@@ -607,14 +607,53 @@ const Auction = () => {
       description: `${currentPlayer.name} remains unsold`,
     });
 
-    if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
-      setCurrentPlayerIndex(prev => prev + 1);
+    // Mark this player as "seen" in the current round
+    const categoryName = currentCategory?.category.name || '';
+    setSeenPlayersPerCategory(prev => {
+      const newSeen = { ...prev };
+      const seenSet = new Set(prev[categoryName] || []);
+      seenSet.add(currentPlayer.id);
+      newSeen[categoryName] = seenSet;
+      return newSeen;
+    });
+
+    // Check if this was the last unseen player in the category
+    const seenSet = seenPlayersPerCategory[categoryName] || new Set<string>();
+    const remainingUnseen = shuffledPlayers.filter(
+      p => p.category === categoryName && !seenSet.has(p.id) && p.id !== currentPlayer.id
+    );
+
+    if (remainingUnseen.length === 0) {
+      // All players in this category have been seen — start a new round
+      // Re-shuffle the remaining unsold players in this category
+      const unsoldInCategory = shuffledPlayers.filter(p => p.category === categoryName);
+      
+      if (unsoldInCategory.length > 0) {
+        // Re-shuffle them in the main list
+        const reshuffled = shuffleArray(unsoldInCategory);
+        const otherPlayers = shuffledPlayers.filter(p => p.category !== categoryName);
+        setShuffledPlayers([...otherPlayers, ...reshuffled]);
+        
+        // Clear seen set for this category to start fresh round
+        setSeenPlayersPerCategory(prev => {
+          const newSeen = { ...prev };
+          delete newSeen[categoryName];
+          return newSeen;
+        });
+        
+        setCurrentPlayerIndex(0);
+        toast({
+          title: "New Round Started",
+          description: `All players in ${categoryName} have been shown. Starting new round with randomized order.`,
+        });
+      }
     } else {
-      setCurrentPlayerIndex(0);
-      toast({
-        title: "Continuing with Unsold Players",
-        description: `Showing unsold players in ${currentCategory?.category.name} category`,
-      });
+      // Move to next unseen player
+      if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
+        setCurrentPlayerIndex(prev => prev + 1);
+      } else {
+        setCurrentPlayerIndex(0);
+      }
     }
   };
 
