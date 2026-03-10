@@ -950,7 +950,7 @@ const Auction = () => {
                                   {currentCategory?.category.name}
                                 </Badge>
                                 <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground">
-                                  {currentPlayerIndex + 1} / {currentCategoryPlayers.length}
+                                  {(currentCategory?.processedCount || 0) + currentPlayerIndex + 1} / {currentCategory?.originalTotal || 0}
                                 </Badge>
                               </div>
                               <motion.h2 
