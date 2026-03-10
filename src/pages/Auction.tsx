@@ -655,10 +655,11 @@ const Auction = () => {
         });
       }
     } else {
-      // Move to next unseen player
-      if (currentPlayerIndex + 1 < currentCategoryPlayers.length) {
-        setCurrentPlayerIndex(prev => prev + 1);
-      } else {
+      // Don't increment currentPlayerIndex — the seen player will be filtered out
+      // on re-render, so the same index will naturally point to the next player.
+      // Only reset if the current index would be out of bounds after filtering.
+      const remainingAfterMark = currentCategoryPlayers.length - 1; // minus the one we just marked
+      if (currentPlayerIndex >= remainingAfterMark && remainingAfterMark > 0) {
         setCurrentPlayerIndex(0);
       }
     }
