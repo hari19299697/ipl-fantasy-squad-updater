@@ -263,11 +263,18 @@ const Auction = () => {
     }
   }, [players, categories.length, shuffleInitialized]);
 
-  // Group shuffled players by category
-  const playersByCategory = categories.map(category => ({
-    category,
-    players: shuffledPlayers.filter(p => p.category === category.name)
-  }));
+  // Group shuffled players by category, filtering out "seen" players in the current round
+  const playersByCategory = categories.map(category => {
+    const seenSet = seenPlayersPerCategory[category.name] || new Set<string>();
+    const categoryPlayers = shuffledPlayers.filter(
+      p => p.category === category.name && !seenSet.has(p.id)
+    );
+    return {
+      category,
+      players: categoryPlayers,
+      totalUnsold: shuffledPlayers.filter(p => p.category === category.name).length,
+    };
+  });
 
   const allSoldPlayers = players.filter(p => p.owner_id);
   const allUnsoldPlayers = players.filter(p => !p.owner_id);
