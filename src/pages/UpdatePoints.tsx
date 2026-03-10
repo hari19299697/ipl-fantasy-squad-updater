@@ -136,7 +136,7 @@ const UpdatePoints = () => {
     const playingXISet = new Set<string>();
     
     data?.forEach(p => {
-      pointsMap[p.player_id] = p.points.toString();
+      pointsMap[p.player_id] = (p.points ?? 0).toString();
       const details = p.details as { isPlayingXI?: boolean } | null;
       if (details?.isPlayingXI) {
         playingXISet.add(p.player_id);
