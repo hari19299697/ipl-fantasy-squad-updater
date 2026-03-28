@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Wallet, Users, Trophy, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Wallet, Users, Trophy, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Loader2, BarChart3 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Player = Database['public']['Tables']['players']['Row'] & {
@@ -25,9 +27,106 @@ interface TeamSquadModalProps {
 type SortField = 'name' | 'points' | 'auction_price' | 'team';
 type SortDir = 'asc' | 'desc';
 
+const PlayerMatchBreakdown = ({ playerId }: { playerId: string }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['playerMatchBreakdown', playerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('player_match_points')
+        .select(`
+          points,
+          matches (
+            match_number,
+            match_date,
+            team1:real_teams!matches_team1_id_fkey(short_name),
+            team2:real_teams!matches_team2_id_fkey(short_name)
+          )
+        `)
+        .eq('player_id', playerId)
+        .order('matches(match_number)');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!playerId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading match data...</span>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground py-3 text-center">No match points recorded yet</p>
+    );
+  }
+
+  const totalPoints = data.reduce((sum, d) => sum + d.points, 0);
+  const matchCount = data.length;
+  const avgPoints = matchCount > 0 ? (totalPoints / matchCount).toFixed(1) : '0';
+  const maxPoints = Math.max(...data.map(d => d.points));
+  const minPoints = Math.min(...data.map(d => d.points));
+
+  return (
+    <div className="space-y-3">
+      {/* Mini stats row */}
+      <div className="flex gap-4 text-xs">
+        <div className="flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary font-medium">
+          <BarChart3 className="h-3 w-3" />
+          {matchCount} Matches
+        </div>
+        <div className="px-2 py-1 rounded bg-muted">
+          Avg: <span className="font-semibold">{avgPoints}</span>
+        </div>
+        <div className="px-2 py-1 rounded bg-muted">
+          Best: <span className="font-semibold text-green-600">{maxPoints}</span>
+        </div>
+        <div className="px-2 py-1 rounded bg-muted">
+          Worst: <span className="font-semibold text-red-500">{minPoints}</span>
+        </div>
+      </div>
+
+      {/* Match-by-match table */}
+      <div className="grid grid-cols-[auto_1fr_auto] gap-x-4 gap-y-1 text-sm">
+        <div className="font-medium text-muted-foreground text-xs pb-1">Match</div>
+        <div className="font-medium text-muted-foreground text-xs pb-1">Teams</div>
+        <div className="font-medium text-muted-foreground text-xs pb-1 text-right">Points</div>
+        {data.map((entry: any, i: number) => {
+          const match = entry.matches;
+          const team1 = match?.team1?.short_name || '?';
+          const team2 = match?.team2?.short_name || '?';
+          const isHighest = entry.points === maxPoints && maxPoints > 0;
+          const isLowest = entry.points === minPoints && data.length > 1;
+
+          return (
+            <div key={i} className="contents">
+              <div className="text-muted-foreground font-mono">#{match?.match_number}</div>
+              <div>{team1} vs {team2}</div>
+              <div className={`text-right font-semibold ${isHighest ? 'text-green-600' : isLowest ? 'text-red-500' : ''}`}>
+                {entry.points}
+              </div>
+            </div>
+          );
+        })}
+        {/* Total row */}
+        <div className="contents border-t">
+          <div className="pt-2 mt-1 border-t font-semibold text-muted-foreground">Total</div>
+          <div className="pt-2 mt-1 border-t"></div>
+          <div className="pt-2 mt-1 border-t text-right font-bold">{totalPoints}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, maxPlayers }: TeamSquadModalProps) => {
   const [sortField, setSortField] = useState<SortField>('points');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const TOP_N = 18;
 
   const handleSort = (field: SortField) => {
@@ -37,6 +136,10 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
       setSortField(field);
       setSortDir(field === 'name' || field === 'team' ? 'asc' : 'desc');
     }
+  };
+
+  const togglePlayer = (playerId: string) => {
+    setExpandedPlayerId(prev => prev === playerId ? null : playerId);
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -64,7 +167,6 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
 
   const totalSpent = players.reduce((sum, p) => sum + (p.auction_price || 0), 0);
 
-  // Always sort by points desc to determine top N for total calculation
   const pointsSorted = useMemo(() => {
     return [...players].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
   }, [players]);
@@ -72,6 +174,7 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
   const top18Total = useMemo(() => {
     return pointsSorted.slice(0, TOP_N).reduce((sum, p) => sum + (p.total_points || 0), 0);
   }, [pointsSorted]);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -125,6 +228,7 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
                     <span className="flex items-center">Player <SortIcon field="name" /></span>
                   </TableHead>
@@ -143,11 +247,10 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
               </TableHeader>
               <TableBody>
                 {sortedPlayers.map((player, index) => {
-                  // Determine if this player is in the top N by points
                   const top18Ids = new Set(pointsSorted.slice(0, TOP_N).map(p => p.id));
                   const isInTop = top18Ids.has(player.id);
+                  const isExpanded = expandedPlayerId === player.id;
                   
-                  // Find if this is the boundary row (last top-N player in current sort order)
                   const topIndices = sortedPlayers
                     .map((p, i) => top18Ids.has(p.id) ? i : -1)
                     .filter(i => i !== -1);
@@ -155,11 +258,17 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                   const isBoundary = index === lastTopIndex && players.length > TOP_N;
 
                   return (
-                    <>
+                    <div key={player.id} className="contents">
                       <TableRow 
-                        key={player.id} 
-                        className={`group hover:bg-muted/50 ${isInTop ? 'bg-primary/5' : 'opacity-50'}`}
+                        className={`cursor-pointer transition-colors ${isInTop ? 'bg-primary/5' : 'opacity-50'} ${isExpanded ? 'bg-accent/50' : 'hover:bg-muted/50'}`}
+                        onClick={() => togglePlayer(player.id)}
                       >
+                        <TableCell className="w-8 pr-0">
+                          {isExpanded 
+                            ? <ChevronDown className="h-4 w-4 text-primary" /> 
+                            : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          }
+                        </TableCell>
                         <TableCell>
                           <div className="font-medium">{player.name}</div>
                           {player.category && (
@@ -178,9 +287,19 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                         </TableCell>
                         <TableCell className="text-right font-semibold">{player.total_points || 0}</TableCell>
                       </TableRow>
+                      
+                      {/* Expanded match breakdown */}
+                      {isExpanded && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="bg-accent/30 border-l-4 border-primary/40 p-4">
+                            <PlayerMatchBreakdown playerId={player.id} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      
                       {isBoundary && (
                         <TableRow key={`divider-${player.id}`}>
-                          <TableCell colSpan={6} className="p-0">
+                          <TableCell colSpan={7} className="p-0">
                             <div className="border-t-2 border-dashed border-primary/40 my-0 relative">
                               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-background px-2 text-xs text-muted-foreground font-medium">
                                 Top {TOP_N} — Total: {top18Total} pts
@@ -189,7 +308,7 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </div>
                   );
                 })}
               </TableBody>
