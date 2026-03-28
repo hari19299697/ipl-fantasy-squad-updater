@@ -619,7 +619,9 @@ const UpdatePoints = () => {
         .update({ is_completed: true })
         .eq('id', selectedMatch);
 
-      // Update team owner totals directly from player_match_points (no delay needed)
+      // Wait briefly for the DB trigger to update players.total_points
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update team owner totals from players.total_points (kept accurate by DB trigger)
       await updateTeamOwnerTotals();
 
       toast({
