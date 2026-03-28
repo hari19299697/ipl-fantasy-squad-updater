@@ -527,37 +527,23 @@ const UpdatePoints = () => {
   };
 
   const updateTeamOwnerTotals = async () => {
-    // Calculate team owner totals directly from player_match_points
-    // This avoids any dependency on players.total_points being up-to-date
+    // The DB trigger already updates players.total_points accurately.
+    // We just need to sum those for each team owner.
     const { data: playersWithOwners } = await supabase
       .from('players')
-      .select('id, owner_id')
+      .select('id, owner_id, total_points')
       .eq('tournament_id', tournamentId!)
       .not('owner_id', 'is', null);
 
     if (!playersWithOwners || playersWithOwners.length === 0) return;
 
-    // Get all match points for these players directly
-    const playerIds = playersWithOwners.map(p => p.id);
-    const { data: allMatchPoints } = await supabase
-      .from('player_match_points')
-      .select('player_id, points')
-      .in('player_id', playerIds);
-
-    // Sum points per player from match points table (source of truth)
-    const playerTotals = new Map<string, number>();
-    allMatchPoints?.forEach(mp => {
-      playerTotals.set(mp.player_id, (playerTotals.get(mp.player_id) || 0) + mp.points);
-    });
-
-    // Aggregate per owner
+    // Aggregate per owner using the already-accurate players.total_points
     const ownerTotals = new Map<string, number>();
     playersWithOwners.forEach(player => {
       if (player.owner_id) {
-        const playerTotal = playerTotals.get(player.id) || 0;
         ownerTotals.set(
           player.owner_id,
-          (ownerTotals.get(player.owner_id) || 0) + playerTotal
+          (ownerTotals.get(player.owner_id) || 0) + (player.total_points || 0)
         );
       }
     });
