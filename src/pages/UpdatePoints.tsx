@@ -125,14 +125,28 @@ const UpdatePoints = () => {
   };
 
   const fetchExistingPoints = async () => {
+    // First, initialize ALL players from the match's teams to 0
+    const matchData = matches.find(m => m.id === selectedMatch);
+    const pointsMap: { [key: string]: string } = {};
+    
+    if (matchData) {
+      players
+        .filter(p => p.real_team_id === matchData.team1_id || p.real_team_id === matchData.team2_id)
+        .forEach(p => {
+          pointsMap[p.id] = '0';
+        });
+    }
+
     const { data, error } = await supabase
       .from('player_match_points')
       .select('player_id, points, details')
       .eq('match_id', selectedMatch);
 
-    if (error) return;
+    if (error) {
+      setPlayerPoints(pointsMap);
+      return;
+    }
 
-    const pointsMap: { [key: string]: string } = {};
     const playingXISet = new Set<string>();
     
     data?.forEach(p => {
