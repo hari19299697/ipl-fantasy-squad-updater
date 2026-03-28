@@ -258,8 +258,8 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                   const isBoundary = index === lastTopIndex && players.length > TOP_N;
 
                   return (
-                    <>
-                      <TableRow key={player.id}
+                    <Fragment key={player.id}>
+                      <TableRow
                         className={`cursor-pointer transition-colors ${isInTop ? 'bg-primary/5' : 'opacity-50'} ${isExpanded ? 'bg-accent/50' : 'hover:bg-muted/50'}`}
                         onClick={() => togglePlayer(player.id)}
                       >
