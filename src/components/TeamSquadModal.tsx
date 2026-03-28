@@ -258,8 +258,8 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                   const isBoundary = index === lastTopIndex && players.length > TOP_N;
 
                   return (
-                    <div key={player.id} className="contents">
-                      <TableRow 
+                    <>
+                      <TableRow key={player.id}
                         className={`cursor-pointer transition-colors ${isInTop ? 'bg-primary/5' : 'opacity-50'} ${isExpanded ? 'bg-accent/50' : 'hover:bg-muted/50'}`}
                         onClick={() => togglePlayer(player.id)}
                       >
