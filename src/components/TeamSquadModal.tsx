@@ -308,7 +308,7 @@ const TeamSquadModal = ({ isOpen, onClose, ownerId, ownerName, players, team, ma
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
